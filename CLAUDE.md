@@ -1,6 +1,6 @@
 # TrailStories — CLAUDE.md
 ## Bijgewerkt: 17-06-2026
-> Versie: v1.0.0 · Project: TrailStories · Doel: regels voor Claude Code bij dit project
+> Versie: v1.1.0 · Project: TrailStories · Doel: regels voor Claude Code bij dit project
 
 ---
 
@@ -16,6 +16,13 @@
    - PROJECTLOG.md entry
    - BACKLOG.md update
    - PROJECT.md update (indien van toepassing)
+
+## Delivery-regels (per bestand)
+
+- **Eén voor één leveren**: bij een taak die meerdere bestanden raakt, lever je elk bestand afzonderlijk aan. Stop na elk bestand en wacht op expliciete check/akkoord van de gebruiker vóór je doorgaat naar het volgende bestand.
+- **Versie-update verplicht**: elk aangepast bestand krijgt een opgehoogd versienummer in de bestandsheader (bv. v1.0.0 → v1.1.0 bij wijzigingen, v1.0.0 → v2.0.0 bij breaking/structurele wijzigingen).
+- **Blok benamingen**: gebruik consistent de sectie-stijl `# ======================= NAAM =======================` in markdown-bestanden, en duidelijke genummerde commentaarblokken in code-bestanden (zie voorbeeld in DEFINITION OF DONE).
+- **Inline code uitleg verplicht**: in HTML/CSS/JS-bestanden krijgt elk logisch blok een commentaarregel die uitlegt wat het doet — niet alleen wát de code doet, maar ook waaróm (indien niet evident).
 
 ---
 
@@ -45,6 +52,7 @@
 - JSON is single source of truth
 - Geen inline HTML data logic
 - Geen hardcoded routes in JS
+- Geen hardcoded UI-tekst in HTML — alle user-facing tekst via i18n-systeem (zie sectie I18N & MEERTALIGHEID)
 
 ## HTML werkwijze
 
@@ -87,11 +95,45 @@ Gebruik HTML entities in JS-rendered HTML:
 
 # ======================= TAAL & STIJL =======================
 
-- UI content: Nederlands
+- UI content: meertalig via i18n-systeem — NL is de eerste/standaardtaal, structuur is talen-uitbreidbaar
 - Code: Engels
 - Commentaar: technisch, minimaal maar expliciet — verplicht per logische blokken
 - Clean structure > micro-optimalisatie
 - Geen overbodige uitleg
+
+---
+
+# ======================= I18N & MEERTALIGHEID =======================
+
+## Architectuurkeuzes (vastgelegd 17-06-2026)
+
+- **Talen**: alleen NL actief nu; structuur is klaar voor uitbreiding (EN, FR, ...) zonder herontwerp.
+- **Content per taal**: apart JSON-bestand per taal en per route, naamconventie `<route-id>.<taal>.json` (bv. `ninglinspo.nl.json`, later `ninglinspo.en.json`).
+- **Vaste UI-teksten** (sectiekoppen, labels, knoppen): apart van route-content, in `ui-strings.<taal>.json` (bv. `ui-strings.nl.json`).
+- **Taalkeuze-mechanisme**: JS taal-switcher, geen aparte URL per taal. Zelfde HTML-bestand voor alle talen; JS bepaalt actieve taal en laadt het juiste JSON-bestand.
+- **HTML bevat geen hardcoded tekst**: alle user-facing tekst-elementen krijgen een `data-i18n="key"` attribuut; JS vult de tekst na het laden van de juiste taalbestanden.
+- **Geen automatische taalherkenning verplicht in MVP** — standaardtaal NL, latere uitbreiding kan browser-taal of een keuze-knop toevoegen.
+
+## Bestandsconventie
+
+```
+data/
+├── routes.json                    # overzicht (taal-onafhankelijke velden: id, distance_km, etc.)
+├── ninglinspo.nl.json              # route content NL
+├── ninglinspo.en.json              # route content EN (later)
+├── ui-strings.nl.json              # vaste UI-teksten NL
+├── ui-strings.en.json              # vaste UI-teksten EN (later)
+```
+
+## HTML conventie
+
+```html
+<!-- Vóór i18n: hardcoded tekst -->
+<h2>Het verhaal</h2>
+
+<!-- Na i18n: data-i18n attribuut, tekst wordt door JS ingevuld -->
+<h2 data-i18n="section.story"></h2>
+```
 
 ---
 
@@ -129,9 +171,11 @@ users
 
 Een taak is klaar als:
 
+- [ ] Bestand afzonderlijk aangeleverd en akkoord ontvangen vóór het volgende bestand
+- [ ] Versienummer in bestandsheader opgehoogd
 - [ ] Code werkt zonder console errors
 - [ ] Werkt op desktop én mobile
-- [ ] Inline commentaar aanwezig per logisch blok
+- [ ] Inline commentaar aanwezig per logisch blok (wat + waarom indien niet evident)
 - [ ] JSON data correct geïntegreerd
 - [ ] UI consistent met route template
 - [ ] GPX/Map correct werkt indien relevant
@@ -139,6 +183,29 @@ Een taak is klaar als:
 - [ ] PROJECT.md geüpdatet (indien van toepassing)
 - [ ] PROJECTLOG.md entry toegevoegd
 - [ ] BACKLOG.md status aangepast
+
+## Voorbeeld versie-header (code-bestanden)
+
+```js
+// =======================================================
+// app.js — v1.1.0
+// TrailStories — i18n loader + app init
+// =======================================================
+```
+
+```css
+/* =======================================================
+   main.css — v1.1.0
+   TrailStories — design system
+   ======================================================= */
+```
+
+```html
+<!-- =======================================================
+     ninglinspo.html — v1.1.0
+     TrailStories — route detail template
+     ======================================================= -->
+```
 
 ---
 
