@@ -1,6 +1,6 @@
 # TrailStories — CLAUDE.md
 ## Bijgewerkt: 17-06-2026
-> Versie: v1.3.0 · Project: TrailStories · Doel: regels voor Claude Code bij dit project
+> Versie: v2.0.0 · Project: TrailStories · Doel: regels voor Claude Code bij dit project
 
 ---
 
@@ -24,6 +24,11 @@
 - **Blok benamingen**: gebruik consistent de sectie-stijl `# ======================= NAAM =======================` in markdown-bestanden, en duidelijke genummerde commentaarblokken in code-bestanden (zie voorbeeld in DEFINITION OF DONE).
 - **Inline code uitleg verplicht**: in HTML/CSS/JS-bestanden krijgt elk logisch blok een commentaarregel die uitlegt wat het doet — niet alleen wát de code doet, maar ook waaróm (indien niet evident).
 
+## Referentievoorbeelden uit andere projecten
+
+Soms wordt een bestand uit een ander project (bv. MyFamTreeCollab) als voorbeeld gedeeld om een patroon te illustreren (zie `develop/standaardpagina.html`, gedeeld 17-06-2026 — bron voor i18next-architectuur en component-injectie). Dit is **inspiratie/referentie**, geen letterlijk te kopiëren code. Patronen worden bewust overgenomen (met motivatie in CLAUDE.md/PROJECT.md vastgelegd), niet klakkeloos geplakt — TrailStories heeft een eigen scope (geen auth/analytics in MVP) en eigen vanilla-principes die alleen voor i18next bewust doorbroken worden.
+
+
 ---
 
 # ======================= WERKWIJZE CLAUDE CODE =======================
@@ -46,13 +51,14 @@
 
 # ======================= CODE PRINCIPES =======================
 
-- Geen frameworks (NO React/Vue/etc.)
+- Geen frameworks voor UI-rendering (NO React/Vue/etc.)
+- **Bewuste uitzondering (vastgelegd 17-06-2026)**: i18next is toegestaan als enige externe dependency, specifiek voor het i18n-systeem. Motivatie: TrailStories' visie omvat user-generated content in meerdere talen (zie PROJECT.md, Fase 6+) — een handgeschreven i18n-loader schaalt niet naar namespace-beheer, fallback-talen en taal-detectie die dit vereist. Dit is de enige toegestane library-uitzondering; alle overige UI/logica blijft vanilla.
 - Geen backend in MVP
 - Alles client-side
 - JSON is single source of truth
 - Geen inline HTML data logic
 - Geen hardcoded routes in JS
-- Geen hardcoded UI-tekst in HTML — alle user-facing tekst via i18n-systeem (zie sectie I18N & MEERTALIGHEID)
+- Geen hardcoded UI-tekst in HTML — alle vaste UI-tekst via i18next (zie sectie I18N & MEERTALIGHEID)
 
 ## HTML werkwijze
 
@@ -105,65 +111,114 @@ Gebruik HTML entities in JS-rendered HTML:
 
 # ======================= I18N & MEERTALIGHEID =======================
 
-## Architectuurkeuzes (vastgelegd 17-06-2026)
+## Architectuurkeuzes (vastgelegd 17-06-2026, herzien naar i18next op 17-06-2026)
 
-- **Talen**: alleen NL actief nu; structuur is klaar voor uitbreiding naar een volgende taal (nog te bepalen) zonder herontwerp.
-- **Content per taal**: route-content en UI-teksten staan per taal in een eigen map onder `data/i18n/<taal>/`, naast elkaar als losse bestanden per route (bv. `data/i18n/nl/ninglinspo.json`).
-- **Vaste UI-teksten** (sectiekoppen, labels, knoppen): apart van route-content, in `data/i18n/<taal>/ui-strings.json`.
-- **Taalkeuze-mechanisme**: JS taal-switcher, geen aparte URL per taal. Zelfde HTML-bestand voor alle talen; JS bepaalt actieve taal en laadt de juiste bestanden uit `data/i18n/<taal>/`.
-- **HTML bevat geen hardcoded tekst**: alle user-facing tekst-elementen krijgen een `data-i18n="key"` attribuut; JS vult de tekst na het laden van de juiste taalbestanden.
-- **Geen automatische taalherkenning verplicht in MVP** — standaardtaal NL, latere uitbreiding kan browser-taal of een keuze-knop toevoegen.
+TrailStories gebruikt **i18next** voor het vertalen van vaste UI-onderdelen (navigatie, knoppen, sectiekoppen, labels). Dit is de enige toegestane externe library in het project (zie CODE PRINCIPES). Reden: de visie van TrailStories omvat user-generated content waarbij mensen wandelverhalen aanmaken in hun eigen taal — dit vereist een volwaardig namespace/fallback-systeem dat een handgeschreven loader niet duurzaam kan bieden.
 
-## Bestandsconventie
+## Twee gescheiden lagen — UI-taal vs. content-taal
+
+Dit onderscheid is fundamenteel en mag niet vermengd worden:
+
+1. **UI-laag (vaste onderdelen)** — vertaald via i18next, beperkt tot de talen die het systeem actief ondersteunt ("standaardtalen"). Nu: alleen NL. Uitbreidbaar zonder herontwerp.
+2. **Content-laag (route-verhalen)** — user-generated, geschreven in willekeurig welke taal de auteur gebruikt. Wordt **nooit vertaald of aangepast**. Elke route-JSON heeft een eigen `language`-veld dat vastlegt in welke taal het verhaal geschreven is (bv. `"language": "pl"`), onafhankelijk van welke UI-talen bestaan.
+
+## Fallback-regel (kernregel, niet wijzigen zonder expliciet overleg)
+
+Wanneer de taal van een route-verhaal (`language`-veld) **niet** voorkomt in de lijst ondersteunde UI-talen, valt **alleen de UI-laag** terug op Engels (`en`) als universele fallback. De content zelf blijft ongewijzigd getoond in de taal waarin hij geschreven is.
+
+Voorbeeld: een route-verhaal met `"language": "it"` (Italiaans), terwijl het systeem alleen NL en EN als UI-talen kent → UI-onderdelen (menu, knoppen, sectiekoppen) tonen Engels; de Italiaanse verhaaltekst wordt onveranderd getoond.
+
+## Namespace-conventie (i18next)
+
+Elke pagina heeft een eigen namespace, genoemd naar de pagina/template. Keys binnen een namespace gebruiken dot-notatie voor groepering.
+
+```
+<namespace>:<key.pad>
+
+Voorbeeld: "ninglinspo:section.story"
+```
+
+Vertaalbestanden volgen i18next's standaard structuur, per taal een eigen JSON:
 
 ```
 data/
-├── routes.json                       # overzicht (taal-onafhankelijke velden: id, distance_km, etc.)
+├── routes.json                        # overzicht (taal-onafhankelijke velden)
 ├── i18n/
 │   ├── nl/
-│   │   ├── ninglinspo.json            # route content NL
-│   │   └── ui-strings.json            # vaste UI-teksten NL
-│   └── <taal>/                        # later, structuur al klaar (taal nog te bepalen)
-│       ├── ninglinspo.json
-│       └── ui-strings.json
+│   │   ├── ninglinspo.json             # UI-namespace voor deze route-pagina (NL)
+│   │   └── common.json                 # gedeelde UI-teksten (navigatie, footer, knoppen)
+│   ├── en/
+│   │   ├── ninglinspo.json             # UI-namespace fallback (EN)
+│   │   └── common.json
+│   └── <taal>/                         # later, structuur al klaar
+├── content/
+│   └── ninglinspo.json                 # route-verhaal zelf — los van i18next, eigen `language`-veld
 ```
+
+**Let op het onderscheid**: `data/i18n/` bevat UI-vertalingen (i18next-beheerd), `data/content/` bevat de route-verhalen (ons eigen schema, user-generated, niet door i18next aangeraakt).
 
 ## HTML conventie
 
 ```html
-<!-- Vóór i18n: hardcoded tekst -->
-<h2>Het verhaal</h2>
-
-<!-- Na i18n: data-i18n attribuut, tekst wordt door JS ingevuld -->
-<h2 data-i18n="section.story"></h2>
+<!-- data-i18n attribuut met namespace:key notatie -->
+<h2 data-i18n="ninglinspo:section.story"></h2>
 ```
 
 ## Attribuut-conventie: zichtbare tekst vs. toegankelijkheid
 
-Twee soorten i18n-attributen, met elk een eigen rol:
+- **`data-i18n="namespace:key"`** — zichtbare tekst, i18next vult dit als `element.textContent` (of via `i18next.t()` + handmatige toewijzing in onze wrapper).
+- **`data-i18n-aria="namespace:key"`** — toegankelijkheidstekst (aria-label), niet zichtbaar maar voorgelezen door screenreaders.
 
-- **`data-i18n="key"`** — voor zichtbare tekst. JS vult dit als `element.textContent`.
-- **`data-i18n-aria="key"`** — voor toegankelijkheidstekst die niet zichtbaar is maar wel door screenreaders wordt voorgelezen. JS vult dit als `element.setAttribute("aria-label", ...)`.
+## Implementatie: js/i18n.js (wrapper) + js/app.js (init)
 
-Beide attributen wijzen naar dezelfde `ui-strings.json`, eventueel naar dezelfde of verschillende keys (bv. een `aria` namespace voor langere/beschrijvendere teksten dan de zichtbare labels).
+- **`js/i18n.js`** — wrapper-module rond i18next (vergelijkbaar met `i18nModule` uit het referentievoorbeeld `develop/standaardpagina.html`). Verantwoordelijk voor: i18next initialiseren (met `i18next-http-backend` voor het laden van JSON, `i18next-browser-languagedetector` voor taaldetectie), `loadNamespace(naam)`, `t(key)` vertaalhelper, en het toepassen van vertalingen op `[data-i18n]`/`[data-i18n-aria]` elementen.
+- **`js/app.js`** — pagina-init: roept `i18nModule.init()` aan, laadt de paginaspecifieke namespace, en regelt de **fallback-regel** (checkt `language`-veld van de geladen route-content tegen ondersteunde UI-talen; stelt UI-taal op `en` indien geen match).
+- **`loadScript(src)` helper** — Promise-gebaseerde scriptloader (overgenomen patroon uit het referentievoorbeeld), gebruikt om externe scripts (zoals component-fragmenten, zie volgende sectie) gegarandeerd ná elkaar te laden en race conditions te voorkomen. Verplicht voor elk script dat afhankelijkheden heeft van een eerder script.
+
+## CDN-scripts (toegestaan, alleen voor i18next)
 
 ```html
-<!-- Zichtbare sectiekop + onzichtbare maar voorleesbare context -->
-<section data-i18n-aria="aria.story_section">
-  <h2 data-i18n="section.story"></h2>
-</section>
+<script src="https://cdn.jsdelivr.net/npm/i18next@23/i18next.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/i18next-http-backend@2/i18nextHttpBackend.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/i18next-browser-languagedetector@7/i18nextBrowserLanguageDetector.min.js"></script>
+<script src="../js/i18n.js"></script>
 ```
 
-## I18n-loader (implementatie: app.js)
+---
 
-De i18n-loader in `js/app.js` (T0-005) voert bij elke pageload:
+# ======================= COMPONENT-INJECTIE (TopBar/Navbar/Footer) =======================
 
-1. Bepaalt actieve taal (leest `lang`-attribuut van `<html>`, fallback op NL — geen automatische browserdetectie in MVP)
-2. Laadt `data/i18n/<taal>/ui-strings.json`
-3. Vult alle `[data-i18n]` en `[data-i18n-aria]` elementen in de DOM
-4. Zet een globale `window.TrailStories` namespace (actieve taal + `loadRouteData(routeId)` helper) zodat andere modules (routes.js, map.js) dezelfde taal-context herbruiken zonder duplicatie
+Vastgelegd 17-06-2026, geïnspireerd op referentievoorbeeld `develop/standaardpagina.html` (extern project MyFamTreeCollab).
 
-**Aandachtspunt voor vervolgmodules**: scripts laden zonder `defer`/module-systeem. Modules die afhankelijk zijn van `window.TrailStories` (zoals de toekomstige `routes.js`) moeten wachten tot de i18n-init is afgerond — los dit op met een event (bv. een custom `trailstories:i18n-ready` event) of door zelf op `DOMContentLoaded` + een check te wachten, niet door aan te nemen dat script-volgorde voldoende garandeert dat `window.TrailStories` al gevuld is.
+## Principe
+
+Navigatie-onderdelen (topbar, navbar, footer) worden **niet** gedupliceerd in elke route-pagina. In plaats daarvan: een los HTML-fragment per component, dat via `fetch()` wordt opgehaald en in een placeholder-element geïnjecteerd.
+
+```
+/components/
+├── topbar.html
+├── navbar.html
+└── footer.html
+```
+
+```html
+<!-- In elke pagina: lege placeholders -->
+<div id="topbar-placeholder"></div>
+<div id="navbar-placeholder"></div>
+<!-- ... pagina-inhoud ... -->
+<div id="footer-placeholder"></div>
+```
+
+## Laadvolgorde (verplicht, voorkomt race conditions)
+
+1. i18next + plugins (CDN) + `js/i18n.js`
+2. Pagina-init start: `i18nModule.init()` → namespace laden → titel zetten
+3. TopBar fragment ophalen (`fetch`) → injecteren → vertalingen toepassen op geïnjecteerde inhoud
+4. `loadScript('js/topbar.js')` — wacht via Promise tot dit script volledig geladen is, vóór de volgende stap
+5. Navbar fragment ophalen → injecteren
+6. Footer fragment ophalen → injecteren
+
+Deze volgorde is een aanpassing van CLAUDE.md's eerdere algemene script-laadvolgorde-regel; voor pagina's met componenten geldt deze specifiekere keten via Promises (`.then()`), niet losse `<script>`-tags zonder samenhang.
 
 ---
 
