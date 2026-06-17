@@ -39,6 +39,10 @@ Het systeem is **frontend-first (static web app)** en draait zonder backend in d
 
 Eerste route die wordt toegevoegd: **Ninglinspo** (data volgt later — GPX, foto's, afstand/duur/hoogtemeters nog aan te leveren, voorlopig met placeholders).
 
+## Story-content workflow
+
+Het schrijven van de `story`-tekst en `tips` per route gebeurt in samenwerking met AI (Claude), in de chat: de gebruiker levert ruwe input (GPX, foto's, steekwoorden/ervaringen over de wandeling) en samen wordt dit omgezet naar het juiste JSON-formaat. Dit is geen geautomatiseerde site-feature in de MVP — een AI-gedreven generatie-feature binnen de site zelf staat als mogelijke latere uitbreiding in BACKLOG.md (Fase 8, "AI route suggestions").
+
 ## Meertaligheid (i18n)
 
 De site is vanaf de basis voorbereid op meerdere talen, ook al wordt in de MVP alleen Nederlands gebruikt.
