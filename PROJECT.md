@@ -1,6 +1,6 @@
 # TrailStories — PROJECT.md
 ## Bijgewerkt: 17-06-2026
-> Versie: v1.1.0 · Project: TrailStories · Stack: Vanilla HTML/CSS/JS (MVP, JSON-based)
+> Versie: v1.1.1 · Project: TrailStories · Stack: Vanilla HTML/CSS/JS (MVP, JSON-based)
 
 ---
 
