@@ -1,1 +1,26 @@
+# ===== OS =====
+.DS_Store
+Thumbs.db
 
+# ===== Editor =====
+.vscode/
+.idea/
+*.sublime-workspace
+*.sublime-project
+
+# ===== Logs =====
+*.log
+
+# ===== Dependencies (mocht er ooit tooling bijkomen) =====
+node_modules/
+
+# ===== Build output (toekomstig gebruik) =====
+dist/
+build/
+
+# ===== Lokale env / secrets (post-MVP, bv. Supabase keys) =====
+.env
+.env.local
+
+# ===== Media die niet in git hoort (optioneel, indien grote bestanden lokaal blijven) =====
+# assets/videos/*.mp4
