@@ -1,1 +1,210 @@
+/* ===========================================================
+   TrailStories — main.css
+   Design system: kleuren, typografie, spacing
+   Outdoor magazine aesthetic — grote beelden, minimale UI chrome
+   =========================================================== */
 
+/* -----------------------------------------------------------
+   1. FONT IMPORTS
+   Display: Fraunces (karaktervol, redactioneel, serif met "grip")
+   Body: Inter (rustig, zeer leesbaar, neutraal)
+   Utility/stats: JetBrains Mono (geeft cijfers een "data" identiteit)
+   ----------------------------------------------------------- */
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap');
+
+/* -----------------------------------------------------------
+   2. CSS VARIABLEN — DESIGN TOKENS
+   ----------------------------------------------------------- */
+:root {
+  /* --- Kleuren: natuurlijke palet (groen / aarde / waterblauw) --- */
+  --color-forest: #2C4A3B;        /* primaire kleur — diep bosgroen, koppen/nav/accenten */
+  --color-forest-dark: #1C3328;   /* donkerder groen — hover states, diepte */
+  --color-earth: #8C6A4F;         /* secundaire kleur — aarde/houttinten, badges/lijnen */
+  --color-water: #4C7A89;         /* accentkleur — gedempt waterblauw, links/interactie */
+  --color-cream: #F6F1E7;         /* achtergrond — warm off-white, geen kil wit */
+  --color-charcoal: #2B2926;      /* primaire tekstkleur — zacht zwart/houtskool */
+  --color-charcoal-soft: #5C5752; /* secundaire tekstkleur — captions, meta-info */
+  --color-line: #DDD4C2;          /* dunne lijnen/dividers op crème achtergrond */
+  --color-white: #FFFFFF;         /* kaarten/overlays waar puur wit nodig is */
+
+  /* --- Status/difficulty kleuren (subtiel, niet schreeuwerig) --- */
+  --color-easy: #6E8F5C;
+  --color-medium: #C98A3E;
+  --color-hard: #B5503D;
+
+  /* --- Typografie: font families --- */
+  --font-display: 'Fraunces', Georgia, serif;        /* titels, route-namen, hero */
+  --font-body: 'Inter', system-ui, sans-serif;        /* lopende tekst, story content */
+  --font-mono: 'JetBrains Mono', monospace;           /* stats, cijfers, data labels */
+
+  /* --- Typografie: schaal (rem-based, mobile-first) --- */
+  --text-xs: 0.75rem;     /* 12px — captions, labels */
+  --text-sm: 0.875rem;    /* 14px — meta info */
+  --text-base: 1rem;      /* 16px — body tekst */
+  --text-lg: 1.25rem;     /* 20px — intro tekst, subtitels */
+  --text-xl: 1.75rem;     /* 28px — sectiekoppen */
+  --text-2xl: 2.5rem;     /* 40px — route titel (mobile) */
+  --text-3xl: 3.5rem;     /* 56px — route titel (desktop), hero */
+
+  /* --- Font weights --- */
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+
+  /* --- Spacing schaal (consistente ritme, 4px-basis) --- */
+  --space-xs: 0.25rem;   /* 4px */
+  --space-sm: 0.5rem;    /* 8px */
+  --space-md: 1rem;      /* 16px */
+  --space-lg: 1.5rem;    /* 24px */
+  --space-xl: 2.5rem;    /* 40px */
+  --space-2xl: 4rem;     /* 64px */
+  --space-3xl: 6rem;     /* 96px */
+
+  /* --- Layout --- */
+  --content-max-width: 1200px;
+  --content-narrow-width: 720px;  /* voor leesbare story-tekst kolommen */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+
+  /* --- Schaduw (subtiel, geen drukke dashboard-schaduwen) --- */
+  --shadow-card: 0 2px 12px rgba(43, 41, 38, 0.08);
+}
+
+/* -----------------------------------------------------------
+   3. RESET & BASIS
+   ----------------------------------------------------------- */
+* {
+  box-sizing: border-box;        /* voorspelbare box-model berekening */
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scroll-behavior: smooth;       /* zachte scroll voor magazine-achtige navigatie */
+}
+
+body {
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  font-weight: var(--weight-regular);
+  color: var(--color-charcoal);
+  background-color: var(--color-cream);
+  line-height: 1.6;              /* ruime regelafstand voor leesbaarheid */
+  -webkit-font-smoothing: antialiased;
+}
+
+img,
+video {
+  max-width: 100%;
+  display: block;                /* voorkomt ongewenste inline-spacing onder media */
+}
+
+a {
+  color: var(--color-water);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+/* -----------------------------------------------------------
+   4. TYPOGRAFIE — KOPPEN
+   ----------------------------------------------------------- */
+h1,
+h2,
+h3 {
+  font-family: var(--font-display);
+  font-weight: var(--weight-semibold);
+  color: var(--color-forest-dark);
+  line-height: 1.15;
+}
+
+h1 {
+  font-size: var(--text-2xl);    /* route titel, mobile-first basis */
+}
+
+h2 {
+  font-size: var(--text-xl);     /* sectiekoppen (Story, Gallery, Tips...) */
+  margin-bottom: var(--space-md);
+}
+
+h3 {
+  font-size: var(--text-lg);
+}
+
+/* Desktop: grotere hero-titel */
+@media (min-width: 768px) {
+  h1 {
+    font-size: var(--text-3xl);
+  }
+}
+
+/* -----------------------------------------------------------
+   5. UTILITY — STATS & DATA (mono font)
+   Gebruikt voor afstand, duur, hoogtemeters, etc.
+   ----------------------------------------------------------- */
+.stat-value {
+  font-family: var(--font-mono);
+  font-weight: var(--weight-medium);
+  color: var(--color-forest-dark);
+}
+
+.stat-label {
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  color: var(--color-charcoal-soft);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;        /* lichte letterspatiëring voor labels, geen caps-lock gevoel */
+}
+
+/* -----------------------------------------------------------
+   6. DIFFICULTY BADGES
+   ----------------------------------------------------------- */
+.badge-difficulty {
+  display: inline-block;
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+  color: var(--color-white);
+}
+
+.badge-difficulty--easy {
+  background-color: var(--color-easy);
+}
+
+.badge-difficulty--medium {
+  background-color: var(--color-medium);
+}
+
+.badge-difficulty--hard {
+  background-color: var(--color-hard);
+}
+
+/* -----------------------------------------------------------
+   7. LAYOUT HELPERS
+   ----------------------------------------------------------- */
+.container {
+  max-width: var(--content-max-width);
+  margin: 0 auto;
+  padding: 0 var(--space-md);
+}
+
+.container--narrow {
+  max-width: var(--content-narrow-width);
+  margin: 0 auto;
+  padding: 0 var(--space-md);
+}
+
+.section {
+  padding: var(--space-2xl) 0;
+}
+
+.divider {
+  border: none;
+  border-top: 1px solid var(--color-line);
+  margin: var(--space-xl) 0;
+}
