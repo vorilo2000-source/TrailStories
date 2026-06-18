@@ -1,5 +1,5 @@
 <!-- =======================================================
-     index.html — v1.0.0
+     index.html — v1.1.0
      MyTrailWalks — homepage route-grid
      T1-001: route-overzicht met tiles (foto + stats + titel)
      Afhankelijkheden: css/main.css, js/i18n.js, js/home.js
@@ -23,6 +23,15 @@
          sticky nav spacing. Los van main.css om het design system
          niet te vervuilen met pagina-specifieke regels. -->
     <link rel="stylesheet" href="css/home.css" />
+
+    <!-- Component-stijlen: topbar, navbar, footer.
+         Volgorde is verplicht: topbar eerst (zet --topbar-height),
+         dan navbar (gebruikt --topbar-height voor sticky positioning),
+         dan footer. home.css gebruikt beide variabelen voor
+         de main-content padding-top berekening. -->
+    <link rel="stylesheet" href="css/topbar.css" />
+    <link rel="stylesheet" href="css/navbar.css" />
+    <link rel="stylesheet" href="css/footer.css" />
 
     <!-- -------------------------------------------------------
          i18next CDN-scripts (enige toegestane externe libraries,
