@@ -1,6 +1,10 @@
 [
   {
+    "_meta_version": "2.0.0",
+    "_meta_note": "Taal-onafhankelijk overzicht-schema. Bevat ALLEEN velden die op de homepage grid getoond worden. Volledige route-content (verhaal, tips, media) staat in data/content/<id>.json. Het language-veld bepaalt de taal van de route-content (user-generated, onafhankelijk van de actieve UI-taal — zie CLAUDE.md I18N-sectie).",
+
     "id": "ninglinspo",
+    "language": "nl",
     "name": "Ninglinspo",
     "region": "Aywaille, Liège, België",
     "date_walked": "",
@@ -10,6 +14,6 @@
     "difficulty": "medium",
     "tags": ["waterval", "bos", "ardennen"],
     "hero": "assets/images/ninglinspo/hero.jpg",
-    "detail_json": "data/ninglinspo.json"
+    "content_json": "data/content/ninglinspo.json"
   }
 ]
