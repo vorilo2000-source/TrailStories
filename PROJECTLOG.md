@@ -1,6 +1,6 @@
-# TrailStories — PROJECTLOG.md
+# MyTrailWalks — PROJECTLOG.md
 ## Bijgewerkt: 17-06-2026
-> Versie: v1.3.0 · Project: TrailStories
+> Versie: v1.3.0 · Project: MyTrailWalks
 
 ---
 
@@ -16,7 +16,7 @@
 - Tech stack bevestigd: vanilla HTML/CSS/JS, JSON als single source of truth, geen backend in MVP
 - Eerste route gedefinieerd: **Ninglinspo** — toegevoegd aan backlog (T1-005), data (GPX/foto's/stats) volgt later
 - Post-MVP richting vastgelegd: Supabase cloud sync, accounts en community features verplaatst naar Fase 6+
-- Repo aangemaakt: github.com/vorilo2000-source/trailstories — mapstructuur + PROJECT.md/CLAUDE.md/BACKLOG.md/PROJECTLOG.md/README.md/.gitignore gepusht naar main
+- Repo aangemaakt: github.com/vorilo2000-source/MyTrailWalks — mapstructuur + PROJECT.md/CLAUDE.md/BACKLOG.md/PROJECTLOG.md/README.md/.gitignore gepusht naar main
 - **T0-002 (JSON data model) — Done**: definitief schema uitgewerkt — `data/routes.json` als licht overzicht-schema voor de homepage grid, `data/ninglinspo.json` als volledig detail-schema (incl. bronverwijzingen GPX Viewer/AllTrails/OpenStreetMap en `practical_info` blok)
 - **T0-004 (Design system) — Done**: `css/main.css` opgezet met CSS-variabelen — kleurenpalet (bosgroen/aarde/gedempt waterblauw op warm crème), typografie (Fraunces display, Inter body, JetBrains Mono voor stats), spacing-schaal en basis componenten (difficulty badges, stat-labels)
 
@@ -42,8 +42,8 @@
 - **`data/i18n/nl/ui-strings.json` → v1.0.0**: vaste UI-teksten NL aangemaakt — categorieën `section`, `stat`, `difficulty`, `practical_info`, `rating`, `aria`
 - **`data/i18n/nl/ninglinspo.json` → v1.0.0**: route-content herzien naar i18n-structuur — alleen taal-specifieke velden (naam, regio, bronvermelding, media, story, praktische info, tips, rating); taal-onafhankelijke velden (afstand/duur/hoogtemeters/tags) blijven in `routes.json`
 - **`routes/ninglinspo.html` → v1.1.0**: alle hardcoded NL-tekst vervangen door `data-i18n="key"` (zichtbare tekst) en `data-i18n-aria="key"` (toegankelijkheidstekst/aria-label) attributen
-- **`js/app.js` → v1.0.0**: i18n-loader geïmplementeerd — taal-detectie (fallback NL), fetch met foutafhandeling, nested-key lookup, DOM-vulling voor beide attribuut-typen, globale `window.TrailStories` namespace met `loadRouteData()` helper voor hergebruik door toekomstige modules
-- **CLAUDE.md → v1.3.0**: `data-i18n` vs `data-i18n-aria` conventie gedocumenteerd; i18n-loader gedrag beschreven; aandachtspunt genoteerd voor toekomstige `routes.js` — scripts laden zonder `defer`, dus afhankelijke modules moeten niet aannemen dat `window.TrailStories` al gevuld is op basis van script-volgorde alleen
+- **`js/app.js` → v1.0.0**: i18n-loader geïmplementeerd — taal-detectie (fallback NL), fetch met foutafhandeling, nested-key lookup, DOM-vulling voor beide attribuut-typen, globale `window.MyTrailWalks` namespace met `loadRouteData()` helper voor hergebruik door toekomstige modules
+- **CLAUDE.md → v1.3.0**: `data-i18n` vs `data-i18n-aria` conventie gedocumenteerd; i18n-loader gedrag beschreven; aandachtspunt genoteerd voor toekomstige `routes.js` — scripts laden zonder `defer`, dus afhankelijke modules moeten niet aannemen dat `window.MyTrailWalks` al gevuld is op basis van script-volgorde alleen
 - Status: T0-002, T0-003 en T0-005 kunnen op ✅ Done gezet worden in BACKLOG.md zodra deze bestanden zijn doorgevoerd in de repo
 - Openstaand aandachtspunt voor volgende sessie: race-condition risico tussen app.js en routes.js oplossen (bv. via custom event) bij het bouwen van T1-002/T1-003 (route detail rendering + JSON loader)
 
