@@ -1,0 +1,20 @@
+{
+  "_meta": {
+    "language": "en",
+    "namespace": "home",
+    "version": "1.0.0",
+    "note": "English fallback for home page UI texts. Structure mirrors nl/home.json exactly — any key added to NL must be added here too."
+  },
+
+  "page": {
+    "title": "MyTrailWalks",
+    "intro": "Personal stories from hikes I've walked — GPS tracks, photos and everything I encountered along the way."
+  },
+
+  "grid": {
+    "heading": "Walks",
+    "empty": "No walks added yet.",
+    "loading": "Loading walks…",
+    "error": "Could not load walks. Try refreshing the page."
+  }
+}
