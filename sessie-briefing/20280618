@@ -1,0 +1,91 @@
+# MyTrailWalks — Sessiebriefing T0-006
+## Sessie 02 · 18-06-2026
+
+---
+
+## CONTEXT
+
+Project: MyTrailWalks
+Lees vóór je begint deze bestanden in de repo-root, in deze volgorde:
+
+1. `CLAUDE.md` — werkwijze, codeprincipes, i18n-architectuur, delivery-regels
+2. `PROJECT.md` — projectvisie, datastructuur, UI/UX-principes, design system
+3. `BACKLOG.md` — actuele taakstatus en aanbevolen volgorde
+4. `PROJECTLOG.md` — sessie 01 samenvatting en openstaande punten
+
+---
+
+## OPDRACHT — Sessie 02
+
+### Stap 1 — TD-004: `js/app.js` herzien (verplichte eerste stap)
+
+De huidige `js/app.js` is nog de TrailStories-era versie met een eigen handgeschreven i18n-loader. Die moet herzien worden naar de nieuwe i18next-architectuur:
+
+- Verwijder de oude `fetchJson()` / `applyTranslations()` / `initI18n()` logica
+- Vervang door aanroep van `i18nModule.init()` (uit `js/i18n.js` v1.1.0)
+- Implementeer de fallback-naar-Engels-regel: check het `language`-veld van de geladen route-content tegen `i18nModule.SUPPORTED_LANGUAGES` — als geen match, roep `i18nModule.changeLanguage("en")` aan
+- Exporteer `window.TrailStories` namespace behouden voor compatibiliteit met toekomstige `routes.js` / `map.js`
+- Versie-header bijwerken naar v2.0.0 (breaking change)
+
+### Stap 2 — T0-006: Component-systeem voltooien
+
+De component-fragmenten (topbar/navbar/footer) zijn aangeleverd als losse HTML-bestanden. Nu de fetch-injectie-infrastructuur bouwen:
+
+**`js/app.js`** (uitbreiding na stap 1) — fetch+injectie logica:
+- Haal `components/topbar.html`, `components/navbar.html`, `components/footer.html` op via `fetch()`
+- Injecteer in respectievelijk `#topbar-placeholder`, `#navbar-placeholder`, `#footer-placeholder`
+- Pas vertalingen toe op geïnjecteerde inhoud via `i18nModule.applyTranslations(rootEl)`
+- Roep `i18nModule.buildLanguageSwitcher()` aan op `#languageSwitcher` na topbar-injectie
+- Volg de verplichte Promise-keten laadvolgorde uit CLAUDE.md sectie COMPONENT-INJECTIE
+
+**`js/navbar.js`** — hamburger-toggle logica:
+- Toggle `.site-nav--open` op `<nav>` bij klik op `.site-header__hamburger`
+- Toggle `.site-header__hamburger--open` op de knop zelf (X-animatie)
+- Zet `aria-expanded` correct (true/false)
+- Sluit menu bij klik buiten de navbar (document click handler)
+- Zet `aria-current="page"` op de actieve nav-link op basis van `window.location.pathname`
+
+**Base-pad helper** — logo-pad werkt vanuit root maar niet vanuit `routes/` submappen:
+- Bepaal het base-pad dynamisch op basis van de huidige paginadiepte
+- Pas `src`-attributen van logo-afbeeldingen aan na injectie
+
+### Stap 3 — T1-005: `data/content/ninglinspo.json` aanmaken
+
+Eerste route-content bestand met placeholder data:
+- Schema conform PROJECT.md (`data/content/<route-id>.json`)
+- Verplicht `language`-veld: `"nl"`
+- Placeholder waarden voor alle velden (GPX/foto's/stats volgen later)
+- `id`: `"ninglinspo"`
+
+---
+
+## ARCHITECTUUR-AFHANKELIJKHEDEN (lees dit goed)
+
+- `js/i18n.js` v1.1.0 is de basis — check de publieke API (`window.i18nModule`) vóór je `app.js` schrijft
+- `css/topbar.css` zet `--topbar-height: 44px`, `css/navbar.css` zet `--navbar-height: 60px` — deze variabelen zijn al actief in `home.css` via `calc(var(--nav-total-height) + var(--space-xl))`
+- Component-fragmenten staan in `components/` — paden zijn relatief aan de root, werken correct vanuit `index.html` maar niet vanuit `routes/`
+- `#languageSwitcher` `<select>` staat in `components/topbar.html` — `buildLanguageSwitcher()` verwacht dit element na injectie
+
+---
+
+## WAT NIET TE DOEN
+
+- Geen filter/zoek-functionaliteit — dat is Fase 4
+- Geen auth-logica in `#top-auth` — dat is T6-001 (post-MVP), slot blijft placeholder
+- Geen nieuwe kleuren of fonts buiten de design tokens van `main.css`
+- Geen frameworks — i18next blijft de enige externe library
+
+---
+
+## WERKWIJZE (verplicht, zie CLAUDE.md)
+
+1. Lees de vier bestanden (CLAUDE.md / PROJECT.md / BACKLOG.md / PROJECTLOG.md)
+2. Vraag expliciete toestemming vóór je begint met bouwen
+3. Lever bestanden één voor één aan — wacht op akkoord per bestand
+4. Versie-header verplicht op elk bestand
+5. Stop bij ambiguïteit — vraag verduidelijking
+6. Sluit sessie af met: gewijzigde bestanden overzicht, nieuwe PROJECTLOG.md-entry, bijgewerkte BACKLOG.md
+
+## EERSTE STAP
+
+Bevestig dat je CLAUDE.md, PROJECT.md, BACKLOG.md en PROJECTLOG.md gelezen hebt, en vraag dan toestemming om te starten met TD-004 (`js/app.js` herzien).
