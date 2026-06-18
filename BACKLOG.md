@@ -1,4 +1,4 @@
-# TrailStories — BACKLOG.md
+# MyTrailWalks — BACKLOG.md
 ## Bijgewerkt: 17-06-2026
 > Versie: v2.0.0 · MVP backlog structure
 
