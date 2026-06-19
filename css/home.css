@@ -44,7 +44,7 @@
    ------------------------------------------------------- */
 .main-content {
   padding-bottom: var(--space-3xl);
-  min-height: 10vh;
+  min-height: 100vh;
 }
 
 /* -------------------------------------------------------
@@ -57,7 +57,7 @@
   width: 100%;
   min-height: 520px;
   height: 80vh;
-  max-height: 700px;
+  max-height: 70px;
   display: flex;
   align-items: center;
   justify-content: center;
