@@ -1,46 +1,26 @@
 /* =======================================================
-   home.css — v1.0.0
-   MyTrailWalks — homepage grid + tile component
+   home.css — v2.0.0
+   MyTrailWalks — homepage stijlen
+   Structuur: hero → route-grid
+   Geen navbar spacing meer (beslissing sessie 02).
    Uitsluitend tokens uit main.css — geen nieuwe kleuren/fonts.
-   Sticky nav-spacing: CSS-variabelen zodat T0-006 de hoogte
-   kan overschrijven zonder dit bestand aan te hoeven raken.
    ======================================================= */
 
 /* -------------------------------------------------------
-   1. STICKY NAV SPACING
-   Reserveert ruimte voor topbar + navbar zodat de page-content
-   er niet achter verdwijnt wanneer T0-006 de componenten sticky
-   maakt. Hoogte-waarden zijn placeholders — T0-006 overschrijft
-   deze variabelen in de component-CSS met de werkelijke hoogtes.
-   Gebruik van CSS-variabelen hier (i.p.v. hardcoded px) zodat
-   de homepage-layout automatisch mee-aanpast zonder dat dit
-   bestand opnieuw aangepast moet worden.
+   1. TOPBAR HOOGTE
+   Wordt overschreven door topbar.css met de werkelijke hoogte.
+   main-content begint direct onder de sticky topbar.
    ------------------------------------------------------- */
 :root {
-  --topbar-height: 0px;    /* T0-006: overschrijven met werkelijke topbar-hoogte */
-  --navbar-height: 0px;    /* T0-006: overschrijven met werkelijke navbar-hoogte */
-  --nav-total-height: calc(var(--topbar-height) + var(--navbar-height));
-}
-
-/* Lege placeholder-divs: geen hoogte nu, geen layout-impact.
-   T0-006 maakt ze sticky via position: sticky + top: 0 op de
-   geïnjecteerde component-markup zelf, niet op deze wrappers. */
-.topbar-placeholder,
-.navbar-placeholder,
-.footer-placeholder {
-  /* Bewust leeg: T0-006 injecteert hier de echte componenten.
-     Geen min-height of display:none — de div is zichtbaar maar
-     neemt geen ruimte in totdat er inhoud in zit. */
+  --topbar-height: 44px;
 }
 
 /* -------------------------------------------------------
    2. SKIP-LINK (toegankelijkheid)
-   Verborgen totdat de gebruiker Tab indrukt. Springt naar
-   #main-content voorbij de (straks gevulde) navigatie.
    ------------------------------------------------------- */
 .skip-link {
   position: absolute;
-  top: -100%;               /* buiten scherm, onzichtbaar */
+  top: -100%;
   left: var(--space-md);
   z-index: 9999;
   padding: var(--space-sm) var(--space-md);
@@ -54,72 +34,168 @@
 }
 
 .skip-link:focus {
-  top: var(--space-sm);     /* springt in beeld wanneer gefocust via Tab */
+  top: var(--space-sm);
 }
 
 /* -------------------------------------------------------
    3. MAIN CONTENT
-   Voegt padding-top toe gelijk aan de totale nav-hoogte zodat
-   de eerste sectie niet achter een sticky nav verdwijnt.
-   Zodra T0-006 --topbar-height en --navbar-height instelt,
-   past deze padding zich automatisch aan.
+   Geen padding-top — hero sectie begint direct onder topbar.
+   De hero zelf heeft geen padding nodig: hij is fullwidth.
    ------------------------------------------------------- */
 .main-content {
-  padding-top: calc(var(--nav-total-height) + var(--space-xl));
   padding-bottom: var(--space-3xl);
-  min-height: 100vh;         /* voorkomt een te korte pagina bij weinig routes */
+  min-height: 100vh;
 }
 
 /* -------------------------------------------------------
-   4. PAGE HEADER
-   Paginatitel + intro-zin boven de route-grid.
+   4. HERO SECTIE
+   Fullwidth, grote foto + overlay + gecentreerde tekst.
+   Hoogte: 80vh op mobile, 600px max op desktop.
    ------------------------------------------------------- */
-.page-header {
-  padding-top: var(--space-xl);
-  padding-bottom: var(--space-xl);
-  border-bottom: 1px solid var(--color-line);
-  margin-bottom: var(--space-xl);
+.hero {
+  position: relative;
+  width: 100%;
+  min-height: 520px;
+  height: 80vh;
+  max-height: 700px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  overflow: hidden;
 }
 
-.page-header__title {
-  /* h1 krijgt display-font via main.css; hier alleen spacing */
+/* Achtergrond foto — nu kleur-placeholder, later:
+   background-image: url('assets/images/hero.jpg');
+   via inline style op .hero of via een apart CSS-blok */
+.hero__bg {
+  position: absolute;
+  inset: 0;
+  background-color: var(--color-forest);
+  /* Toekomstige foto:
+  background-image: url('assets/images/hero.jpg');
+  background-size: cover;
+  background-position: center; */
+  z-index: 0;
+}
+
+/* Donkere overlay voor leesbaarheid van de tekst op de foto */
+.hero__overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to bottom,
+    rgba(28, 51, 40, 0.2) 0%,
+    rgba(28, 51, 40, 0.65) 100%
+  );
+  z-index: 1;
+}
+
+/* Tekst-wrapper — boven overlay */
+.hero__content {
+  position: relative;
+  z-index: 2;
+  padding: var(--space-xl) var(--space-md);
+  max-width: 680px;
+  width: 100%;
+}
+
+/* Eyebrow — kleine tag boven de titel */
+.hero__eyebrow {
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+  color: rgba(255, 255, 255, 0.75);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
   margin-bottom: var(--space-sm);
 }
 
-.page-header__intro {
-  font-size: var(--text-lg);
-  color: var(--color-charcoal-soft);
-  max-width: var(--content-narrow-width);  /* leesbare regellengte */
-  line-height: 1.5;
+/* Hoofdtitel — display font, groot en wit */
+.hero__title {
+  font-family: var(--font-display);
+  font-size: var(--text-2xl);
+  font-weight: var(--weight-semibold);
+  color: var(--color-white);
+  line-height: 1.15;
+  margin-bottom: var(--space-md);
+}
+
+@media (min-width: 640px) {
+  .hero__title {
+    font-size: var(--text-3xl);
+  }
+}
+
+/* Subtitel — intro zin onder de hoofdtitel */
+.hero__subtitle {
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  color: rgba(255, 255, 255, 0.8);
+  line-height: 1.6;
+  margin-bottom: var(--space-xl);
+  max-width: 480px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+@media (min-width: 640px) {
+  .hero__subtitle {
+    font-size: var(--text-lg);
+  }
+}
+
+/* CTA-knop — anchor die scrolt naar de route-grid */
+.hero__cta {
+  display: inline-block;
+  padding: var(--space-md) var(--space-xl);
+  background-color: transparent;
+  color: var(--color-white);
+  border: 1.5px solid rgba(255, 255, 255, 0.7);
+  border-radius: var(--radius-md);
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  letter-spacing: 0.04em;
+  text-decoration: none;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.hero__cta:hover {
+  background-color: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 1);
+  text-decoration: none;
 }
 
 /* -------------------------------------------------------
    5. ROUTES SECTIE
    ------------------------------------------------------- */
+.routes-section {
+  padding-top: var(--space-2xl);
+  padding-bottom: var(--space-2xl);
+}
+
 .routes-section__heading {
   margin-bottom: var(--space-xl);
+  font-size: var(--text-xl);
+  color: var(--color-forest-dark);
 }
 
 /* -------------------------------------------------------
    6. ROUTE GRID
-   Mobile-first: 1 kolom op smal scherm, meer op breed scherm.
-   CSS Grid met auto-fill zodat de grid zichzelf aanpast aan
-   het aantal routes zonder JS-logica voor kolom-berekening.
    ------------------------------------------------------- */
 .routes-grid {
   display: grid;
-  grid-template-columns: 1fr;              /* mobile: 1 kolom */
+  grid-template-columns: 1fr;
   gap: var(--space-xl);
 }
 
-/* Tablet: 2 kolommen */
 @media (min-width: 640px) {
   .routes-grid {
     grid-template-columns: repeat(2, 1fr);
   }
 }
 
-/* Desktop: 3 kolommen */
 @media (min-width: 1024px) {
   .routes-grid {
     grid-template-columns: repeat(3, 1fr);
@@ -128,9 +204,6 @@
 
 /* -------------------------------------------------------
    7. ROUTE TILE
-   Elke tile is een klikbare kaart: hero-foto + stats + titel.
-   De hele tile is klikbaar via een <a> wrapper (geen JS-click
-   handler op de div) voor semantiek en toegankelijkheid.
    ------------------------------------------------------- */
 .route-tile {
   display: flex;
@@ -138,48 +211,35 @@
   background-color: var(--color-white);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-card);
-  overflow: hidden;                        /* hero-foto hoeken afkappen */
+  overflow: hidden;
   text-decoration: none;
   color: inherit;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .route-tile:hover {
-  transform: translateY(-3px);             /* subtiele lift, outdoor-magazine gevoel */
+  transform: translateY(-3px);
   box-shadow: 0 8px 24px rgba(43, 41, 38, 0.14);
   text-decoration: none;
 }
 
-/* -------------------------------------------------------
-   7a. TILE — HERO FOTO
-   Vaste hoogte met object-fit: cover zodat elke foto goed
-   past ongeacht de originele beeldverhouding.
-   ------------------------------------------------------- */
 .route-tile__hero {
   width: 100%;
   height: 220px;
   object-fit: cover;
   object-position: center;
   display: block;
-  background-color: var(--color-line);     /* placeholder kleur terwijl foto laadt */
+  background-color: var(--color-line);
 }
 
-/* -------------------------------------------------------
-   7b. TILE — CONTENT WRAPPER
-   Flex-column zodat de difficulty-badge altijd onderaan zit
-   ongeacht de hoeveelheid tekst erboven (stretch cards).
-   ------------------------------------------------------- */
 .route-tile__content {
   display: flex;
   flex-direction: column;
-  flex: 1;                                 /* neemt resterende hoogte in grid-rij */
+  flex: 1;
   padding: var(--space-lg);
   gap: var(--space-sm);
 }
 
-/* -------------------------------------------------------
-   7c. TILE — NAAM + REGIO
-   ------------------------------------------------------- */
 .route-tile__name {
   font-family: var(--font-display);
   font-size: var(--text-lg);
@@ -195,12 +255,6 @@
   margin: 0;
 }
 
-/* -------------------------------------------------------
-   7d. TILE — STATS ROW
-   Drie stat-blokjes naast elkaar: afstand / duur / hoogtemeters.
-   Mono-font voor de cijfers (stat-value), body-font voor labels
-   (stat-label) — beide gedefinieerd in main.css utility-klassen.
-   ------------------------------------------------------- */
 .route-tile__stats {
   display: flex;
   gap: var(--space-lg);
@@ -213,23 +267,16 @@
   gap: var(--space-xs);
 }
 
-/* -------------------------------------------------------
-   7e. TILE — DIFFICULTY BADGE
-   Pushed naar de onderkant van de tile via margin-top: auto.
-   badge-difficulty klassen zijn gedefinieerd in main.css.
-   ------------------------------------------------------- */
 .route-tile__badge {
-  margin-top: auto;                        /* duwt badge naar onderkant van content */
-  align-self: flex-start;                  /* badge breedte = inhoud, niet full-width */
+  margin-top: auto;
+  align-self: flex-start;
 }
 
 /* -------------------------------------------------------
    8. GRID STATUS BERICHTEN
-   Getoond door home.js tijdens laden, bij lege staat of fout.
-   Gecentreerd in de grid, subtiele styling.
    ------------------------------------------------------- */
 .routes-grid__status {
-  grid-column: 1 / -1;                     /* volle breedte over alle kolommen */
+  grid-column: 1 / -1;
   text-align: center;
   padding: var(--space-2xl) 0;
   color: var(--color-charcoal-soft);
@@ -237,5 +284,127 @@
 }
 
 .routes-grid__status--error {
-  color: var(--color-hard);               /* roodtint voor foutmelding, uit main.css */
+  color: var(--color-hard);
+}
+
+/* -------------------------------------------------------
+   HERO SECTIE — v2.0.0
+   Fullscreen openingsmoment direct onder de topbar.
+   Achtergrondafbeelding via CSS (background-image op .hero)
+   zodat de overlay en tekst correct over de foto vallen.
+   Geen vaste hoogte in px — 90svh zodat de hero op elk
+   scherm bijna de volledige viewport vult zonder te knijpen.
+   ------------------------------------------------------- */
+.hero {
+  position: relative;
+  min-height: 90svh;           /* bijna volledige viewport, ook op mobile */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+
+  /* Placeholder achtergrond — vervangen door echte foto:
+     background-image: url('../assets/images/hero.jpg');
+     Tot die tijd: donker bosgroen als fallback. */
+  background-color: var(--color-forest);
+  background-image: none;      /* hier later: url('../assets/images/hero.jpg') */
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+/* Donkere overlay over de foto zodat witte tekst leesbaar blijft */
+.hero__overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to bottom,
+    rgba(28, 51, 40, 0.35) 0%,
+    rgba(28, 51, 40, 0.65) 100%
+  );
+  pointer-events: none;
+}
+
+/* Content gecentreerd, boven de overlay */
+.hero__content {
+  position: relative;
+  z-index: 1;
+  padding: var(--space-xl) var(--space-lg);
+  max-width: 680px;
+}
+
+/* Eyebrow label boven de hoofdtitel */
+.hero__tagline {
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+  color: rgba(255, 255, 255, 0.75);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  margin-bottom: var(--space-sm);
+}
+
+/* Hoofdtitel — display font, groot, wit */
+.hero__title {
+  font-family: var(--font-display);
+  font-size: var(--text-2xl);
+  font-weight: var(--weight-semibold);
+  color: var(--color-white);
+  line-height: 1.15;
+  margin-bottom: var(--space-md);
+}
+
+@media (min-width: 768px) {
+  .hero__title {
+    font-size: var(--text-3xl);
+  }
+}
+
+/* Subtitel / omschrijving */
+.hero__sub {
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  color: rgba(255, 255, 255, 0.8);
+  line-height: 1.6;
+  margin-bottom: var(--space-xl);
+  max-width: 480px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* CTA-knop: scroll naar het route-grid */
+.hero__cta {
+  display: inline-block;
+  padding: var(--space-md) var(--space-xl);
+  background-color: transparent;
+  color: var(--color-white);
+  border: 1.5px solid rgba(255, 255, 255, 0.7);
+  border-radius: var(--radius-md);
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  letter-spacing: 0.04em;
+  text-decoration: none;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.hero__cta:hover {
+  background-color: rgba(255, 255, 255, 0.12);
+  border-color: var(--color-white);
+  text-decoration: none;
+}
+
+/* -------------------------------------------------------
+   MAIN CONTENT aanpassing
+   Geen extra padding-top meer — hero vult zelf de ruimte
+   onder de topbar. Alleen de route-grid sectie heeft
+   ademruimte boven en onder nodig.
+   ------------------------------------------------------- */
+.main-content {
+  padding-top: 0;              /* was: calc(--nav-total-height + --space-xl) */
+}
+
+.routes-section {
+  padding-top: var(--space-2xl);
+  padding-bottom: var(--space-3xl);
 }
