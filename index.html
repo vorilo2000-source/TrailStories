@@ -1,10 +1,7 @@
 <!-- =======================================================
-     index.html — v2.0.0
+     index.html — v2.1.0
      MyTrailWalks — homepage
      Structuur: topbar → hero → route-grid → footer
-     Geen navbar — topbar doet het navigatiewerk (merknaam + taalswitch)
-     Afhankelijkheden: css/main.css, css/home.css, css/topbar.css,
-     css/footer.css, js/i18n.js, js/app.js, js/home.js
      ======================================================= -->
 <!DOCTYPE html>
 <html lang="nl" id="html-root">
@@ -18,7 +15,6 @@
     <link rel="stylesheet" href="css/topbar.css" />
     <link rel="stylesheet" href="css/footer.css" />
 
-    <!-- i18next CDN (volgorde verplicht) -->
     <script src="https://cdn.jsdelivr.net/npm/i18next@23/i18next.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/i18next-http-backend@2/i18nextHttpBackend.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/i18next-browser-languagedetector@7/i18nextBrowserLanguageDetector.min.js"></script>
@@ -27,40 +23,25 @@
 
   <body>
 
-     <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
-     <script>eruda.init();</script>
+    <div id="topbar-placeholder" aria-hidden="true"></div>
 
-    <!-- TOPBAR: merknaam + taalswitch + inlog-slot (post-MVP) -->
-    <div id="topbar-placeholder" class="topbar-placeholder" aria-hidden="true"></div>
-
-    <!-- SKIP-LINK -->
     <a href="#main-content" class="skip-link">
       <span data-i18n="common:nav.skip_to_content"></span>
     </a>
 
     <main id="main-content" class="main-content">
 
-      <!-- -------------------------------------------------------
-           HERO SECTIE
-           Fullscreen openingsmoment: grote achtergrondafbeelding
-           met tagline en CTA-knop naar het route-grid.
-           Afbeelding via CSS background-image zodat de tekst
-           correct over de foto valt (geen <img> + absolute positie).
-           data-i18n keys: home:hero.tagline / .title / .sub / .cta
-           ------------------------------------------------------- -->
       <section class="hero" aria-label="Intro">
+        <div class="hero__bg"></div>
         <div class="hero__overlay"></div>
         <div class="hero__content">
-          <p class="hero__tagline" data-i18n="home:hero.tagline"></p>
+          <p class="hero__eyebrow" data-i18n="home:hero.tagline"></p>
           <h1 class="hero__title" data-i18n="home:hero.title"></h1>
-          <p class="hero__sub" data-i18n="home:hero.sub"></p>
+          <p class="hero__subtitle" data-i18n="home:hero.sub"></p>
           <a href="#routes-grid" class="hero__cta" data-i18n="home:hero.cta"></a>
         </div>
       </section>
 
-      <!-- -------------------------------------------------------
-           ROUTE GRID SECTIE
-           ------------------------------------------------------- -->
       <section class="routes-section container" aria-labelledby="routes-heading">
         <h2 id="routes-heading" class="routes-section__heading" data-i18n="home:grid.heading"></h2>
         <div id="routes-grid" class="routes-grid" role="list">
@@ -70,10 +51,8 @@
 
     </main>
 
-    <!-- FOOTER -->
-    <div id="footer-placeholder" class="footer-placeholder" aria-hidden="true"></div>
+    <div id="footer-placeholder" aria-hidden="true"></div>
 
-    <!-- Scripts: app.js (component injectie) + home.js (grid + i18n) -->
     <script src="js/app.js"></script>
     <script src="js/home.js"></script>
 
