@@ -1,90 +1,104 @@
-/* =======================================================
-   topbar.css — v1.1.0
-   MyTrailWalks — topbar component stijlen
-   Logo + merknaam gecentreerd, taalswitch rechts.
-   ======================================================= */
-
-:root {
-  --topbar-height: 52px;
-}
-
-.topbar-wrapper {
-  position: sticky;
-  top: 0;
-  z-index: 100;
-  width: 100%;
-  background-color: var(--color-cream);
-  border-bottom: 1px solid var(--color-line);
-}
+/* ===========================================================
+   topbar.css — MyTrailWalks v2.0.0
+   v2.0.0: auth slot toegevoegd, 3-koloms layout
+           (auth links | logo midden | taal rechts)
+   v1.1.0: Logo2.png + merknaam
+   =========================================================== */
 
 .topbar {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: var(--space-sm) var(--space-xl);
+  background-color: var(--color-forest);
+  position: sticky;
+  top: 0;
+  z-index: 500;
+  width: 100%;
+  border-bottom: 1px solid var(--color-forest-dark);
+}
+
+.topbar__inner {
   max-width: var(--content-max-width);
   margin: 0 auto;
-  min-height: var(--topbar-height);
-  box-sizing: border-box;
+  padding: 0 var(--space-lg);
+  height: 56px;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: var(--space-md);
 }
 
-.topbar__left {
-  flex: 0 0 auto;
-  min-width: 80px;
+/* --- Auth slot (links) --- */
+.topbar__auth {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
 }
 
-/* MIDDEN: logo + tekst naast elkaar */
-.topbar__center {
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
+/* --- Logo + merknaam (midden) --- */
+.topbar__brand {
   display: flex;
   align-items: center;
   gap: var(--space-sm);
-  pointer-events: none;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.topbar__brand:hover {
+  text-decoration: none;
+  opacity: 0.88;
 }
 
 .topbar__logo {
-  height: 32px;
+  height: 28px;
   width: auto;
   display: block;
-  pointer-events: auto;
 }
 
-.topbar__brand {
+.topbar__name {
   font-family: var(--font-display);
-  font-size: var(--text-sm);
+  font-size: var(--text-base);
   font-weight: var(--weight-semibold);
-  color: var(--color-forest-dark);
-  letter-spacing: 0.03em;
-  pointer-events: auto;
+  color: var(--color-cream);
+  letter-spacing: 0.01em;
 }
 
+/* --- Taalwisselaar (rechts) --- */
 .topbar__right {
-  flex: 0 0 auto;
-  min-width: 80px;
   display: flex;
+  align-items: center;
   justify-content: flex-end;
 }
 
-.topbar__lang-switcher {
-  padding: var(--space-xs) var(--space-sm);
-  border: 1px solid var(--color-line);
-  border-radius: var(--radius-sm);
+.topbar__lang-select {
   font-family: var(--font-body);
   font-size: var(--text-xs);
-  color: var(--color-charcoal);
-  background-color: var(--color-white);
+  color: var(--color-cream);
+  background: rgba(246, 241, 231, 0.1);
+  border: 1px solid rgba(246, 241, 231, 0.25);
+  border-radius: var(--radius-sm);
+  padding: 3px 8px;
   cursor: pointer;
-  appearance: auto;
+  transition: background 0.15s, border-color 0.15s;
+  appearance: none;
+  -webkit-appearance: none;
 }
 
-.topbar__lang-switcher:hover {
-  border-color: var(--color-earth);
+.topbar__lang-select:hover {
+  background: rgba(246, 241, 231, 0.18);
+  border-color: rgba(246, 241, 231, 0.5);
 }
 
-.topbar__lang-switcher:focus {
-  outline: 2px solid var(--color-water);
-  outline-offset: 2px;
+.topbar__lang-select option {
+  background: var(--color-forest-dark);
+  color: var(--color-cream);
+}
+
+/* --- Mobile --- */
+@media (max-width: 480px) {
+  .topbar__inner {
+    padding: 0 var(--space-md);
+    height: 50px;
+  }
+
+  .topbar__name {
+    display: none; /* enkel logo op kleine schermen */
+  }
 }
