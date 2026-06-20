@@ -1,6 +1,6 @@
 # MyTrailWalks — BACKLOG.md
-## Bijgewerkt: 18-06-2026
-> Versie: v2.1.0 · MVP backlog structure
+## Bijgewerkt: 20-06-2026
+> Versie: v2.2.0 · MVP backlog structure
 
 ---
 
@@ -16,8 +16,8 @@
 | T0-002 | architecture | JSON data model | Definitief routes.json schema implementeren | Feature | 🔴 High | ✅ Done — `language`-veld toegevoegd, `content_json` pad gecorrigeerd naar `data/content/`, `_meta`-velden toegevoegd. Sessie 01 (18-06-2026). |
 | T0-003 | architecture | Route template | Standaard routepagina template (hero, stats, map, story) bouwen | Feature | 🔴 High | 🔄 Heropend — data-i18n keys omzetten naar i18next namespace-notatie (`namespace:key`) |
 | T0-004 | architecture | Design system | Basis UI design rules (typografie, spacing, kleuren outdoor theme) | Improvement | 🟡 Medium | ✅ Done |
-| T0-005 | architecture, i18n | I18next systeem | `js/i18n.js` wrapper bouwen rond i18next (init, loadNamespace, t(), applyTranslations(), changeLanguage(), buildLanguageSwitcher(), loadScript()) + `data/i18n/nl/` en `data/i18n/en/` JSON-bestanden (common + home namespace). `js/app.js` nog niet herzien — openstaand punt voor volgende sessie. | Feature | 🔴 High | ✅ Done — sessie 01 (18-06-2026). Zie PROJECTLOG.md sessie 01 voor details. |
-| T0-006 | architecture, components | Component-systeem | `loadScript()` Promise-helper ✅ (zit in i18n.js). Component-fragmenten ✅ (topbar/navbar/footer aangeleverd als losse HTML-bestanden). Nog open: fetch+injectie logica in app.js, hamburger-toggle JS (navbar.js), buildLanguageSwitcher()-aanroep na injectie, base-pad helper voor logo in submappen, aria-current="page" zetten op actieve nav-link. | Feature | 🔴 High | 🔄 Gedeeltelijk — fragmenten klaar, injectie-logica volgt |
+| T0-005 | architecture, i18n | I18next systeem | `js/i18n.js` wrapper bouwen rond i18next. loadPath dynamisch op basis van paginadiepte (root vs submappen). localStorage-detectie via `mtw_language`. | Feature | 🔴 High | ✅ Done — v1.2.0. Sessie 02 (20-06-2026). |
+| T0-006 | architecture, components | Component-systeem | `js/app.js` v2.1.0: fetch+injectie topbar/footer via `window.appReady` Promise. Navbar verwijderd (beslissing sessie 02). `setActiveNavLink()` geïmplementeerd. Base-pad helper aanwezig. | Feature | 🔴 High | ✅ Done — sessie 02 (20-06-2026). |
 
 ---
 
@@ -25,7 +25,7 @@
 
 | ID | Tags | Taak | Omschrijving | Type | Prioriteit | Status |
 |----|------|------|--------------|------|-----------|--------|
-| T1-001 | routes | Homepage grid | Route-overzicht met tiles (foto + stats + titel) | Feature | 🔴 High | 🔄 Gedeeltelijk — `index.html`, `css/home.css`, `js/home.js` aangeleverd. Grid rendert vanuit `routes.json` via i18next. Fetch-injectie componenten (topbar/navbar/footer) volgt in T0-006. Sessie 01 (18-06-2026). |
+| T1-001 | routes | Homepage grid | Route-overzicht met tiles (foto + stats + titel) | Feature | 🔴 High | ✅ Done — `index.html` v2.1.0, `css/home.css` v2.1.0, `js/home.js` v2.0.0. Hero sectie toegevoegd. Navbar verwijderd. Sessie 02 (20-06-2026). |
 | T1-002 | routes | Route detail page | Dynamische routepagina rendering via JSON | Feature | 🔴 High | 📋 Open |
 | T1-003 | routes | JSON loader | routes.json inladen en renderen in UI | Feature | 🔴 High | ✅ Done — geïmplementeerd als onderdeel van T1-001 in `js/home.js`. |
 | T1-004 | routes | Routing logic | Navigatie tussen homepage en route detail pages | Feature | 🔴 High | 📋 Open |
@@ -85,7 +85,7 @@
 | T6-001 | cloud | Supabase auth | Auth systeem implementeren | Feature | 🟡 Medium | 🔮 Future |
 | T6-002 | cloud | Sync | Offline → cloud sync engine | Feature | 🟡 Medium | 🔮 Future |
 | T6-003 | cloud | Sharing | Shareable trail links | Feature | 🟡 Medium | 🔮 Future |
-| T6-004 | i18n, community | User-generated taal-content | Mensen kunnen zelf wandelverhalen aanmaken in hun eigen taal (`language`-veld vrij invulbaar, niet beperkt tot ondersteunde UI-talen). Vereist: content-invoerformulier, taal-detectie of -keuze bij aanmaken, validatie dat UI-fallback-regel (zie CLAUDE.md) correct toegepast wordt bij weergave. Vereist waarschijnlijk accounts (T6-001) als voorwaarde. | Feature | 🟡 Medium | 🔮 Future |
+| T6-004 | i18n, community | User-generated taal-content | Mensen kunnen zelf wandelverhalen aanmaken in hun eigen taal. Vereist accounts (T6-001) als voorwaarde. | Feature | 🟡 Medium | 🔮 Future |
 
 ---
 
@@ -116,20 +116,17 @@
 | TD-001 | cleanup | Legacy JS | Vermijden van globale variabelen in app.js | Tech Debt | 📋 Open |
 | TD-002 | cleanup | DOM coupling | HTML structuur te sterk gekoppeld aan JS selectors | Tech Debt | 📋 Open |
 | TD-003 | cleanup | Map logic | Leaflet logic nog niet modulair gescheiden | Tech Debt | 📋 Open |
-| TD-004 | cleanup | app.js herzien | `js/app.js` is nog de TrailStories-era versie met eigen i18n-loader. Moet herzien worden naar `i18nModule.init()` aanroep conform nieuwe i18next-architectuur. Aanbeveling: eerste stap in volgende sessie vóór T0-006. | Tech Debt | 📋 Open — toegevoegd sessie 01 (18-06-2026) |
-| TD-005 | cleanup | localStorage prefix | CLAUDE.md localStorage-prefixtabel vermeldt nog `ts_*` — bijwerken naar `mtw_*` (conform `mtw_language` key in `js/i18n.js`). | Tech Debt | 📋 Open — toegevoegd sessie 01 (18-06-2026) |
+| TD-004 | cleanup | app.js herzien | Herzien naar i18next-architectuur conform nieuwe opzet. | Tech Debt | ✅ Done — sessie 02 (20-06-2026) |
+| TD-005 | cleanup | localStorage prefix | CLAUDE.md localStorage-prefixtabel bijwerken van `ts_*` naar `mtw_*`. | Tech Debt | ✅ Done — `mtw_language` geïmplementeerd in `js/i18n.js` v1.2.0. Sessie 02 (20-06-2026) |
 
 ---
 
 ## AANBEVOLEN VOLGORDE VOLGENDE SESSIE
 
-Op basis van openstaande afhankelijkheden:
-
-1. **TD-004** — `js/app.js` herzien naar i18next-architectuur
-2. **T0-006** — fetch-injectie logica + hamburger-JS + buildLanguageSwitcher()-aanroep
-3. **T1-005** — `data/content/ninglinspo.json` aanmaken (placeholder data)
-4. **T0-003** — Route template herzien naar i18next namespace-notatie
-5. **T1-002** — Route detail pagina
+1. **T1-005** — `data/content/ninglinspo.json` aanmaken (placeholder data)
+2. **T0-003** — Route template herzien naar i18next namespace-notatie
+3. **T1-002** — Route detail pagina
+4. **T1-004** — Routing logic tussen homepage en routepagina's
 
 ---
 
