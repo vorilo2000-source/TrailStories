@@ -1,52 +1,32 @@
 <!-- =======================================================
-     topbar.html — v1.0.0
+     topbar.html — v1.1.0
      MyTrailWalks — topbar component fragment
-     Gebaseerd op structuur MyFamTreeCollab TopBar v0.5
-     (referentie, bewust aangepast — zie CLAUDE.md).
-     Injectie via fetch() volgt in T0-006 (component-systeem).
-     Stijlen via css/topbar.css (design tokens uit main.css).
-     Taalwisselaar: gevuld door i18nModule.buildLanguageSwitcher()
-     na injectie — het <select>-element zelf staat hier, de
-     logica zit in js/i18n.js (buildLanguageSwitcher()).
+     Merknaam + logo gecentreerd, taalswitch rechts, inlog links.
      ======================================================= -->
 <div class="topbar-wrapper">
   <div class="topbar">
 
-    <!-- -------------------------------------------------------
-         LINKS: auth-slot
-         Lege placeholder voor toekomstige auth-functionaliteit
-         (post-MVP, zie BACKLOG.md T6-001). Gevuld door topbar.js
-         bij T0-006. aria-hidden totdat er inhoud in zit.
-         ------------------------------------------------------- -->
+    <!-- LINKS: auth-slot (post-MVP) -->
     <div class="topbar__left" id="top-auth" aria-hidden="true">
       <!-- T0-006 / T6-001: auth widget komt hier -->
     </div>
 
-    <!-- -------------------------------------------------------
-         MIDDEN: merknaam
-         Hardcoded tekst — geen i18n nodig voor een merknaam.
-         position absolute + transform centreer-techniek
-         (zelfde patroon als referentievoorbeeld) zodat de
-         merknaam altijd exact gecentreerd blijft ongeacht de
-         breedte van links/rechts blokken.
-         ------------------------------------------------------- -->
+    <!-- MIDDEN: logo + merknaam -->
     <div class="topbar__center">
+      <img
+        src="assets/images/Logo2.png"
+        alt="MyTrailWalks logo"
+        class="topbar__logo"
+      />
       <span class="topbar__brand">MyTrailWalks</span>
     </div>
 
-    <!-- -------------------------------------------------------
-         RECHTS: taalwisselaar
-         Het <select>-element staat hier (markup), de opties en
-         change-handler worden ingevuld door
-         i18nModule.buildLanguageSwitcher(selectEl) na injectie.
-         id="languageSwitcher" is de hook die topbar.js gebruikt.
-         ------------------------------------------------------- -->
+    <!-- RECHTS: taalwisselaar -->
     <div class="topbar__right">
       <select
         id="languageSwitcher"
         class="topbar__lang-switcher"
         aria-label="Kies taal / Choose language">
-        <!-- Opties worden dynamisch ingevuld door i18nModule.buildLanguageSwitcher() -->
       </select>
     </div>
 
