@@ -1,34 +1,35 @@
-<!-- =======================================================
-     topbar.html — v1.1.0
-     MyTrailWalks — topbar component fragment
-     Merknaam + logo gecentreerd, taalswitch rechts, inlog links.
-     ======================================================= -->
-<div class="topbar-wrapper">
-  <div class="topbar">
+<!-- components/topbar.html v2.0.0
+     v2.0.0: auth slot toegevoegd (#top-auth), Supabase login integratie
+             Logo2.png + merknaam midden, taalswitch rechts, login links
+-->
+<header class="topbar" role="banner">
+  <div class="topbar__inner">
 
-    <!-- LINKS: auth-slot (post-MVP) -->
-    <div class="topbar__left" id="top-auth" aria-hidden="true">
-      <!-- T0-006 / T6-001: auth widget komt hier -->
+    <!-- Links: auth widget — gevuld door topbar-auth.js -->
+    <div class="topbar__auth" id="top-auth">
+      <!-- Fallback vóór topbar-auth.js initialiseert -->
+      <button
+        onclick="TopBarAuth && TopBarAuth.openModal()"
+        class="top-auth-login">
+        Inloggen
+      </button>
     </div>
 
-    <!-- MIDDEN: logo + merknaam -->
-    <div class="topbar__center">
-      <img
-        src="assets/images/Logo2.png"
-        alt="MyTrailWalks logo"
-        class="topbar__logo"
-      />
-      <span class="topbar__brand">MyTrailWalks</span>
-    </div>
+    <!-- Midden: logo + merknaam -->
+    <a href="index.html" class="topbar__brand" aria-label="MyTrailWalks — naar homepage">
+      <img src="assets/images/Logo2.png" alt="" class="topbar__logo" aria-hidden="true">
+      <span class="topbar__name">MyTrailWalks</span>
+    </a>
 
-    <!-- RECHTS: taalwisselaar -->
+    <!-- Rechts: taalwisselaar -->
     <div class="topbar__right">
       <select
         id="languageSwitcher"
-        class="topbar__lang-switcher"
-        aria-label="Kies taal / Choose language">
+        class="topbar__lang-select"
+        aria-label="Taal kiezen">
+        <!-- Opties worden dynamisch ingevoegd door i18n.js -->
       </select>
     </div>
 
   </div>
-</div>
+</header>
