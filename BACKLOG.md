@@ -1,6 +1,6 @@
-# MyTrailWalks — BACKLOG.md
-## Bijgewerkt: 20-06-2026
-> Versie: v2.4.0 · MVP backlog structure
+# MyTrailWalks — # MyTrailWalks — BACKLOG.md
+## Bijgewerkt: 21-06-2026
+> Versie: v2.5.0 · MVP backlog structure
 
 ---
 
@@ -16,10 +16,10 @@
 | T0-002 | architecture | JSON data model | Definitief routes.json schema implementeren | Feature | 🔴 High | ✅ Done — sessie 01 (18-06-2026). |
 | T0-003 | architecture | Route template | Standaard routepagina template (hero, stats, map, story) bouwen | Feature | 🔴 High | 🔄 Heropend |
 | T0-004 | architecture | Design system | Basis UI design rules (typografie, spacing, kleuren outdoor theme) | Improvement | 🟡 Medium | ✅ Done |
-| T0-005 | architecture, i18n | I18next systeem | `js/i18n.js` v1.2.0: loadPath dynamisch, localStorage via `mtw_language`. | Feature | 🔴 High | ✅ Done — sessie 02 (20-06-2026). |
-| T0-006 | architecture, components | Component-systeem | `js/app.js` v2.1.0: fetch+injectie topbar/footer via `window.appReady` Promise. Navbar verwijderd. | Feature | 🔴 High | ✅ Done — sessie 02 (20-06-2026). |
+| T0-005 | architecture, i18n | I18next systeem | `js/i18n.js` v1.3.0: loadPath dynamisch, localStorage via `mtw_language`. getBasePath() filtert .html segmenten. | Feature | 🔴 High | ✅ Done — sessie 03 (21-06-2026). |
+| T0-006 | architecture, components | Component-systeem | `js/app.js` v2.2.0: fetch+injectie topbar/footer via `window.appReady` Promise. getBasePath() fix voor .html segmenten. | Feature | 🔴 High | ✅ Done — sessie 03 (21-06-2026). |
 | T0-007 | architecture, media | Cloudinary integratie | Cloudinary gratis tier (25GB opslag, 25GB bandbreedte/maand) als externe foto-opslag. Automatische WebP. Account aanmaken + upload workflow documenteren. | Feature | 🔴 High | 📋 Open |
-| T0-008 | architecture, api | API integraties | Drie externe APIs voor de creator: (1) Open-Meteo — historische weerdata, gratis, geen key. (2) OpenStreetMap Nominatim — locatienamen uit coördinaten, gratis. (3) Anthropic API — AI-gegenereerde tekst, betaald per gebruik, key ingevoerd door gebruiker in creator. | Feature | 🔴 High | 📋 Open |
+| T0-008 | architecture, api | API integraties | Drie externe APIs voor de creator: (1) Open-Meteo — historische weerdata, gratis, geen key. (2) OpenStreetMap Nominatim — locatienamen uit coördinaten, gratis. (3) Anthropic API — AI-gegenereerde tekst, betaald per gebruik, key ingevoerd door gebruiker in creator. | Feature | 🔴 High | ✅ Done — sessie 03 (21-06-2026). |
 
 ---
 
@@ -32,7 +32,7 @@
 | T1-003 | routes | JSON loader | routes.json inladen en renderen in UI | Feature | 🔴 High | ✅ Done |
 | T1-004 | routes | Routing logic | Navigatie tussen homepage en route detail pages | Feature | 🔴 High | 📋 Open |
 | T1-005 | routes | Ninglinspo route entry | `data/content/ninglinspo.json` aanmaken met placeholder data + Cloudinary foto-URLs. | Feature | 🔴 High | 📋 Open |
-| T1-006 | routes, ui, ai | Route creator | `creator.html`: formulier + live preview + AI-assistentie. Twee modi: pre-planning (draft) en publicatie (published). Zie aparte beschrijving hieronder. | Feature | 🔴 High | 📋 Open |
+| T1-006 | routes, ui, ai | Route creator | `creator.html` + `css/creator.css` + `js/creator.js` gebouwd. Formulier + live JSON preview + AI-assistentie. GPX parser (Haversine), Nominatim, Open-Meteo, Anthropic API. Twee modi: handmatig en AI-assisted. Export naar [id].json. Toegang via admin dropdown na inlog. | Feature | 🔴 High | ✅ Done — sessie 03 (21-06-2026). |
 | T1-007 | routes, ui | Route kaartpagina | `routes/[id]-map.html`: interactieve Leaflet kaart + GPX overlay. Apart tabblad. Topbar + footer. | Feature | 🟡 Medium | 📋 Open |
 | T1-008 | routes, ux | Draft management | Homepage grid toont routes op basis van status. Draft-routes tonen "Binnenkort" badge maar zijn niet klikbaar. Creator kan bestaande draft openen en aanvullen na de wandeling. | Feature | 🟡 Medium | 📋 Open |
 
@@ -48,15 +48,13 @@
 3. Locatienaam automatisch via Nominatim op basis van GPX-coördinaten
 4. Foto-URLs invoeren (Cloudinary links) → optioneel AI-gegenereerde captions
 5. Steekwoorden/ervaringen invoeren → AI genereert verhaal + tips + grid-samenvatting
-6. Live preview: routepagina-layout zichtbaar naast formulier
+6. Live preview: JSON zichtbaar naast formulier
 7. Exportknop: downloadt ingevulde `[id].json`
 
 **AI-functies (Anthropic API):**
 - Verhaal genereren op basis van GPX-verloop + weerdata + steekwoorden
 - Tips formuleren uit ruwe notities
 - Korte samenvatting voor grid-tile
-- Foto-captions genereren
-- Meertalige vertaling van content
 
 **API-key:** gebruiker voert Anthropic API-key in bij openen creator (niet opgeslagen, niet in code)
 
@@ -64,36 +62,7 @@
 - Handmatig — geen AI, alles zelf invullen
 - AI-assisted — AI stelt voor, gebruiker keurt goed en past aan
 
-**Twee statussen:**
-- `draft` — pre-planning: route nog niet gelopen. Velden: naam, regio, geplande datum, geschatte stats (uit AllTrails), moeilijkheid, tags, bronlink. Geen GPX, geen weer, geen foto's. AI schrijft verwachtingsverhaal op basis van steekwoorden/bronlink.
-- `published` — na de wandeling: draft heropend, GPX toegevoegd, weerdata opgehaald, foto's toegevoegd, AI verfijnt verhaal op basis van echte ervaring.
-
-**JSON-uitvoer uitgebreid met:**
-```json
-"status": "draft | published",
-"planned_date": "2026-07-10",
-"published_date": "2026-07-12",
-"source_reference": "https://www.alltrails.com/trail/...",
-"gpx_stats": {
-  "distance_km": 12.3,
-  "duration_hours": 3.5,
-  "elevation_up_m": 340,
-  "elevation_down_m": 310,
-  "avg_speed_kmh": 3.8,
-  "max_speed_kmh": 6.2,
-  "highest_point_m": 520,
-  "lowest_point_m": 180
-},
-"weather": {
-  "date": "2026-06-15",
-  "temperature_min": 12,
-  "temperature_max": 22,
-  "precipitation_mm": 0,
-  "wind_kmh": 8,
-  "condition": "zonnig",
-  "source": "Open-Meteo"
-}
-```
+**Toegang:** enkel via admin dropdown in topbar na inlog (Supabase auth)
 
 ---
 
@@ -102,7 +71,7 @@
 | ID | Tags | Taak | Omschrijving | Type | Prioriteit | Status |
 |----|------|------|--------------|------|-----------|--------|
 | T2-001 | maps | Leaflet setup | Leaflet.js integratie met OpenStreetMap tiles | Feature | 🔴 High | 📋 Open |
-| T2-002 | maps | GPX parser | GPX bestand client-side parsen: coördinaten, tijdstempels, hoogte, snelheid, steilste hellingen, rustpunten. | Feature | 🔴 High | 📋 Open |
+| T2-002 | maps | GPX parser | GPX bestand client-side parsen: coördinaten, tijdstempels, hoogte, snelheid, steilste hellingen, rustpunten. | Feature | 🔴 High | ✅ Done — sessie 03 (21-06-2026) — ingebouwd in creator.js. |
 | T2-003 | maps | Route overlay | GPX track overlay op interactieve kaart | Feature | 🔴 High | 📋 Open |
 | T2-004 | maps | Elevation profile | Hoogteprofiel genereren uit GPX data | Feature | 🟡 Medium | 📋 Open |
 | T2-005 | maps | Ninglinspo GPX | GPX-bestand Ninglinspo inladen zodra beschikbaar | Feature | 🟡 Medium | 📋 Open |
@@ -148,7 +117,7 @@
 
 | ID | Tags | Taak | Omschrijving | Type | Prioriteit | Status |
 |----|------|------|--------------|------|-----------|--------|
-| T6-001 | cloud | Supabase auth | Auth systeem — login voor creator + toekomstige gebruikers. Gratis: 1GB opslag, 5GB bandbreedte, 50.000 MAU. | Feature | 🟡 Medium | 🔮 Future |
+| T6-001 | cloud | Supabase auth | Auth systeem — Supabase project MyTrailWalks aangemaakt. `js/auth.js` + `js/topbar-auth.js` gebouwd. Login modal + admin dropdown in topbar. profiles tabel vereist. | Feature | 🟡 Medium | ✅ Done — sessie 03 (21-06-2026). |
 | T6-002 | cloud | Sync | Offline → cloud sync engine | Feature | 🟡 Medium | 🔮 Future |
 | T6-003 | cloud | Sharing | Shareable trail links | Feature | 🟡 Medium | 🔮 Future |
 | T6-004 | i18n, community | User-generated taal-content | Wandelverhalen in eigen taal. Vereist T6-001. | Feature | 🟡 Medium | 🔮 Future |
@@ -194,19 +163,28 @@
 | TD-003 | cleanup | Map logic | Leaflet logic nog niet modulair gescheiden | Tech Debt | 📋 Open |
 | TD-004 | cleanup | app.js herzien | Herzien naar i18next-architectuur. | Tech Debt | ✅ Done — sessie 02 (20-06-2026) |
 | TD-005 | cleanup | localStorage prefix | `mtw_language` geïmplementeerd in `js/i18n.js` v1.2.0. | Tech Debt | ✅ Done — sessie 02 (20-06-2026) |
-| TD-006 | cleanup | Favicon toevoegen | Favicon `<link>` tags toevoegen aan `<head>` van alle pagina's. Bestanden klaar in `assets/images/`. | Tech Debt | 📋 Open |
+| TD-006 | cleanup | Favicon toevoegen | Favicon `<link>` tags toegevoegd aan `creator.html` en `index.html`. Overige pagina's nog te doen bij aanmaak. | Tech Debt | 🔄 Gedeeltelijk — sessie 03 (21-06-2026) |
+
+---
+
+## STANDAARD AFSPRAKEN (vastgelegd sessie 03)
+
+| Onderwerp | Afspraak |
+|-----------|---------|
+| **Script volgorde** | Altijd onderaan `<body>`: Eruda → Supabase SDK → i18next CDN → i18n.js → auth.js → topbar-auth.js → app.js → [pagina].js |
+| **Eruda** | Niet verwijderen als aanwezig in een HTML pagina |
+| **CSS** | Altijd in `<head>` |
+| **Favicon** | Elke nieuwe pagina krijgt favicon tags na `<title>`, vóór CSS |
 
 ---
 
 ## AANBEVOLEN VOLGORDE VOLGENDE SESSIE
 
-1. **T0-007** — Cloudinary account + integratie documenteren
-2. **T0-008** — API integraties voorbereiden (Open-Meteo, Nominatim, Anthropic)
+1. **Supabase** — `profiles` tabel aanmaken + eigen account admin maken
+2. **T0-007** — Cloudinary account + integratie documenteren
 3. **T1-005** — `data/content/ninglinspo.json` aanmaken
-4. **T1-006** — Route creator bouwen
-5. **T1-002** — Route detail pagina (A4 + print-CSS)
-6. **T1-007** — Route kaartpagina
-7. **TD-006** — Favicon toevoegen aan alle pagina's
+4. **T1-002** — Route detail pagina (A4 + print-CSS)
+5. **T1-007** — Route kaartpagina
 
 ---
 
