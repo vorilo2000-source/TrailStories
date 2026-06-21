@@ -1,4 +1,4 @@
-<!-- ======================= creator.html v1.0.0 =======================
+<!-- ======================= creator.html v1.0.1 =======================
      Route creator pagina — MyTrailWalks
      Bouwt stap voor stap een route-JSON op en exporteert deze.
 
@@ -19,9 +19,10 @@
        - Pagina enkel bereikbaar via admin dropdown in topbar na inlog
        - Supabase auth via auth.js + topbar-auth.js
 
-     Dependencies:
-       Supabase SDK → auth.js → topbar-auth.js → i18n.js → app.js → creator.js
+     Scripts: alle scripts onderaan <body> — standaard MyTrailWalks volgorde:
+       Eruda → Supabase SDK → i18next → i18n.js → auth.js → topbar-auth.js → app.js → creator.js
 
+     v1.0.1: scripts verplaatst naar onderaan <body> conform standaard
      v1.0.0: initiële versie
      ======================================================================= -->
 <!DOCTYPE html>
@@ -37,19 +38,6 @@
   <link rel="apple-touch-icon" sizes="180x180" href="assets/images/favicon-180x180.png">
   <link rel="icon" type="image/png" sizes="192x192" href="assets/images/favicon-192x192.png">
 
-  <!-- Fonts via Google -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
-
-  <!-- Supabase SDK -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-
-  <!-- i18next CDN -->
-  <script src="https://cdn.jsdelivr.net/npm/i18next@23/dist/umd/i18next.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/i18next-http-backend@2/i18nextHttpBackend.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/i18next-browser-languagedetector@7/i18nextBrowserLanguageDetector.min.js"></script>
-
   <!-- CSS -->
   <link rel="stylesheet" href="css/main.css">
   <link rel="stylesheet" href="css/topbar.css">
@@ -58,8 +46,9 @@
 </head>
 <body>
 
-<script src="https://cdn.jsdelivr.net/npm/eruda"></script>
-<script>eruda.init();</script>
+  <!-- Eruda debugger — niet verwijderen -->
+  <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
+  <script>eruda.init();</script>
 
   <!-- Topbar -->
   <div id="topbar-placeholder" aria-hidden="true"></div>
@@ -119,8 +108,6 @@
                 <p class="drop-zone__sub">of <button class="link-btn" id="gpx-browse-btn">kies een bestand</button></p>
               </div>
             </div>
-
-            <!-- GPX resultaten (verborgen tot na parse) -->
             <div class="gpx-stats" id="gpx-stats" hidden>
               <div class="stat-grid">
                 <div class="stat-item">
@@ -183,8 +170,6 @@
                 </div>
               </div>
             </div>
-
-            <!-- Weerdata -->
             <div class="weather-block" id="weather-block" hidden>
               <div class="weather-block__header">
                 <span class="weather-block__label">Weerdata — Open-Meteo</span>
@@ -213,7 +198,6 @@
                 <input type="text" id="input-weather-condition" class="input" placeholder="zonnig, bewolkt, regenachtig…">
               </div>
             </div>
-
             <button class="btn btn--secondary btn--sm" id="btn-fetch-weather">Weerdata ophalen</button>
           </div>
         </section>
@@ -267,9 +251,7 @@
               <label class="field__label" for="input-hero-photo">Hero-foto URL</label>
               <input type="url" id="input-hero-photo" class="input" placeholder="https://res.cloudinary.com/…">
             </div>
-            <div id="photo-list" class="photo-list">
-              <!-- Extra foto's worden hier dynamisch ingevoegd -->
-            </div>
+            <div id="photo-list" class="photo-list"></div>
             <button class="btn btn--ghost btn--sm" id="btn-add-photo">+ Foto toevoegen</button>
           </div>
         </section>
@@ -301,8 +283,6 @@
               <label class="field__label" for="input-tips">Tips</label>
               <textarea id="input-tips" class="input input--textarea" rows="4" placeholder="Praktische tips voor wandelaars…"></textarea>
             </div>
-
-            <!-- AI genereer-knop (enkel zichtbaar in AI-modus) -->
             <div class="ai-actions" id="ai-actions" hidden>
               <button class="btn btn--ai" id="btn-ai-generate">
                 <span class="btn-icon">✦</span>
@@ -339,9 +319,7 @@
                 </select>
               </div>
             </div>
-            <button class="btn btn--primary btn--lg" id="btn-export">
-              JSON downloaden
-            </button>
+            <button class="btn btn--primary btn--lg" id="btn-export">JSON downloaden</button>
           </div>
         </section>
 
@@ -364,6 +342,14 @@
 
   <!-- Footer -->
   <div id="footer-placeholder" aria-hidden="true"></div>
+
+  <!-- Supabase SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+
+  <!-- i18next CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/i18next@23/i18next.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/i18next-http-backend@2/i18nextHttpBackend.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/i18next-browser-languagedetector@7/i18nextBrowserLanguageDetector.min.js"></script>
 
   <!-- Scripts: volgorde conform architectuurafspraken -->
   <script src="js/i18n.js"></script>
