@@ -1,16 +1,24 @@
 // =======================================================
-// app.js — v2.1.0
+// app.js — v2.2.0
 // MyTrailWalks — component injectie (topbar + footer)
-// Exporteert window.appReady Promise zodat home.js kan
+// Wijziging v2.2.0: getBasePath() filtert .html bestandsnamen
+// uit het pad, zodat /index.html en /routes/x.html beide
+// correct werken. Zelfde fix als i18n.js v1.3.0.
+// v2.1.0: Exporteert window.appReady Promise zodat home.js kan
 // wachten tot de componenten geïnjecteerd zijn voordat
 // buildLanguageSwitcher() aangeroepen wordt.
 // =======================================================
 "use strict";
 
 function getBasePath() {
-  const depth = window.location.pathname
+  const segments = window.location.pathname
     .split("/")
-    .filter(Boolean).length - 1;
+    .filter(Boolean)
+    .filter((seg) => !seg.endsWith(".html")); // .html bestanden tellen niet mee als mapniveau
+
+  // Eerste segment is de repo-naam op GitHub Pages (bv. "MyTrailWalks")
+  // Die telt ook niet mee als diepte — enkel echte submappen daarna
+  const depth = Math.max(0, segments.length - 1);
   return depth > 0 ? "../".repeat(depth) : "";
 }
 
