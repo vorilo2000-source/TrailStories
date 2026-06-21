@@ -1,6 +1,6 @@
 # MyTrailWalks — PROJECTLOG.md
-## Bijgewerkt: 20-06-2026
-> Versie: v1.1.0 · Projectlog — chronologisch overzicht van sessies en wijzigingen
+## Bijgewerkt: 21-06-2026
+> Versie: v1.2.0 · Projectlog — chronologisch overzicht van sessies en wijzigingen
 
 ---
 
@@ -48,125 +48,66 @@
 | Bestand | Versie | Omschrijving |
 |---------|--------|--------------|
 | `index.html` | v2.1.0 | Navbar verwijderd. Hero sectie toegevoegd (eyebrow + titel + subtitel + CTA). `app.js` als script toegevoegd. |
-| `css/home.css` | v2.1.0 | Dubbele hero-definitie verwijderd. Hero hoogte: `height: 55vh; max-height: 500px`. Overlay verlicht (neutraal zwart i.p.v. groen). Hero achtergrondafbeelding: `assets/images/hero.jpg`. |
-| `js/app.js` | v2.1.0 | Nieuw: fetch+injectie topbar + footer via `window.appReady` Promise. `getBasePath()` helper voor correcte paden vanuit submappen. `setActiveNavLink()`. |
+| `css/home.css` | v2.1.0 | Dubbele hero-definitie verwijderd. Hero hoogte: `height: 55vh; max-height: 500px`. Overlay verlicht. Hero achtergrondafbeelding: `assets/images/hero.jpg`. |
+| `js/app.js` | v2.1.0 | Nieuw: fetch+injectie topbar + footer via `window.appReady` Promise. `getBasePath()` helper. `setActiveNavLink()`. |
 | `js/home.js` | v2.0.0 | Wacht op `window.appReady` vóór `buildLanguageSwitcher()`. i18n init volgorde gecorrigeerd. |
-| `js/i18n.js` | v1.2.0 | `loadPath` dynamisch via `getBasePath()` — werkt correct vanuit root én submappen. localStorage-detectie via `mtw_language`. |
-| `data/i18n/nl/home.json` | v2.0.0 | Hero keys toegevoegd: `hero.tagline`, `hero.title`, `hero.sub`, `hero.cta`. |
+| `js/i18n.js` | v1.2.0 | `loadPath` dynamisch via `getBasePath()` — werkt correct vanuit root én submappen. |
+| `data/i18n/nl/home.json` | v2.0.0 | Hero keys toegevoegd. |
 | `data/i18n/en/home.json` | v2.0.0 | Hero keys toegevoegd (Engelse fallback). |
-| `data/i18n/en/common.json` | v1.0.0 | Nieuw aangemaakt — Engelse fallback voor common namespace. |
 | `components/topbar.html` | v1.1.0 | Logo (Logo2.png) toegevoegd naast merknaam. |
-| `css/topbar.css` | v1.1.0 | Logo stijlen: `height: 32px`, flex naast merknaam. --topbar-height: 52px. |
-| `assets/images/hero.jpg` | — | Hero achtergrondafbeelding homepage (woestijnlandschap). |
-| `assets/images/Logo2.png` | — | MyTrailWalks logo (wandelaar met wandelstok, boom, bergen). |
-| `assets/images/favicon.ico` | — | Favicon gegenereerd uit Logo2.png (16/32/48px). |
-| `assets/images/favicon-32x32.png` | — | Favicon PNG 32x32. |
-| `assets/images/favicon-180x180.png` | — | Apple touch icon 180x180. |
-| `assets/images/favicon-192x192.png` | — | Android favicon 192x192. |
+| `css/topbar.css` | v1.1.0 | Logo stijlen. --topbar-height: 52px. |
 
 ### Architectuurbeslissingen sessie 02
-
-- **Navbar verwijderd** — bewuste beslissing: topbar doet het navigatiewerk (merknaam + taalswitch + inlog post-MVP). Geen aparte navbar op de homepage.
-- **Hero sectie toegevoegd** — fullwidth, donkere overlay, gecentreerde tekst + CTA. Achtergrondafbeelding via `hero__bg` element.
-- **`window.appReady` patroon** — `app.js` exporteert een Promise die resolvet na component-injectie. `home.js` wacht hierop zodat `buildLanguageSwitcher()` pas aangeroepen wordt als de `<select>` in de DOM zit.
-- **Dynamisch loadPath in i18n.js** — `getBasePath()` berekent het juiste pad op basis van paginadiepte. Lost het `../` probleem op voor pagina's in submappen.
-- **Favicon toegevoegd** — gegenereerd uit Logo2.png via Pillow. Toe te voegen in `<head>` van elke pagina na `<title>`.
-
-### Openstaande punten na sessie 02
-- Favicon `<link>` tags toevoegen aan elke pagina's `<head>`
-- `T1-005` — `data/content/ninglinspo.json` aanmaken
-- `T0-003` — Route template herzien
-- `T1-002` — Route detail pagina
+- Navbar definitief verwijderd
+- Hero sectie toegevoegd
+- `window.appReady` patroon voor component-injectie
+- Dynamisch loadPath in i18n.js
 
 ---
 
-# END OF PROJECTLOG.md
-
----
-
-## Sessie 02b — 20-06-2026 (vervolg)
-**Onderwerp:** Architectuurbeslissingen route creator, print-functie, foto-opslag, login-strategie
+## Sessie 02b/c/d — 20-06-2026
+**Onderwerp:** Architectuurbeslissingen route creator, print, foto-opslag, login, AI, GPX, draft/published workflow
 **Status:** Beslissingen vastgelegd, taken toegevoegd aan backlog. Geen code gebouwd.
 
-### Beslissingen
-
-| Onderwerp | Beslissing |
-|-----------|-----------|
-| **Foto-opslag** | Cloudinary gratis tier (25GB opslag, 25GB bandbreedte/maand, automatische WebP). Beter dan Supabase Storage (1GB) voor media. pCloud afgevallen — geen directe img-links. |
-| **Login creator** | Uitgesteld naar T6-001 (Supabase auth). In MVP geen login op creator. |
-| **Interactieve kaart** | Opent in apart tabblad via "Bekijk kaart" knop. Routepagina zelf blijft A4-clean. |
-| **Print-functie** | `@media print` CSS. Browser-native "Bewaar als PDF". Geen externe PDF-library. Kaart vervangen door statische afbeelding bij afdrukken. Actieve links blijven werken in PDF. |
-| **WYSIWYG** | Routepagina ziet er op scherm hetzelfde uit als bij afdrukken — A4-breedte alleen actief bij `@media print`. |
-| **Print publiek** | Print-knop wordt publiek toegankelijk zodat wandelaars pagina kunnen gebruiken voor planning, vervoer, navigatie. |
-| **Navbar** | Definitief verwijderd. Topbar doet het navigatiewerk. |
-| **Hosting** | Blijft GitHub Pages. Netlify uitgesteld (niet nodig zonder login in MVP). |
-
-### Nieuwe taken toegevoegd aan backlog
-
-| ID | Omschrijving |
-|----|-------------|
-| T0-007 | Cloudinary integratie |
-| T1-006 | Route creator (`creator.html`) |
-| T1-007 | Route kaartpagina (apart tabblad) |
-| T2-006 | Statische kaartafbeelding voor print |
-| T7-001 | Print CSS routepagina |
-| T7-002 | Print knop publiek |
-| T7-003 | Planningsinformatie op routepagina |
-| TD-006 | Favicon toevoegen aan alle pagina's |
+Zie backlog voor beslissingstabellen en nieuwe taken (T0-007, T0-008, T1-006, T1-007, T1-008, T2-006, T3-006, T6-001, T7-001/002/003, TD-006).
 
 ---
 
-# END OF PROJECTLOG.md
+## Sessie 03 — 21-06-2026
+**Onderwerp:** Route creator + Supabase auth + topbar login + getBasePath fix
+**Status aan einde sessie:** T1-006 ✅ Done · T6-001 ✅ Done · T0-008 ✅ Done · T2-002 ✅ Done · T0-005 ✅ Done (v1.3.0) · T0-006 ✅ Done (v2.2.0)
 
----
+### Aangeleverde bestanden
 
-## Sessie 02c — 20-06-2026 (vervolg)
-**Onderwerp:** AI-integratie in route creator + GPX interpretatie + weerdata
-**Status:** Beslissingen vastgelegd, taken toegevoegd aan backlog.
+| Bestand | Versie | Omschrijving |
+|---------|--------|--------------|
+| `creator.html` | v1.0.1 | Route creator pagina. 6 stappen: GPX, datum/locatie/weer, route-info, foto's, verhaal/tips, export. Live JSON preview. AI-modus toggle. Favicon. Eruda. Scripts conform standaard volgorde. |
+| `css/creator.css` | v1.0.0 | Creator styling: 2-koloms layout, drop zone, stats grid, weerblok, AI-actiebalk, JSON preview. |
+| `js/creator.js` | v1.0.0 | GPX parser (Haversine), Nominatim locatie, Open-Meteo weer, foto's, AI generatie (Anthropic API), live preview, JSON export. |
+| `js/auth.js` | v1.0.0 | Supabase auth module: register, login, logout, resetPassword, getProfile (username + is_admin). URL: bzcevvfesushlorymszd.supabase.co |
+| `js/topbar-auth.js` | v1.0.0 | Login modal (tabs: inloggen/registreren/vergeten) + gebruikersdropdown met admin sectie (Route creator link). Stijl op MyTrailWalks design tokens. |
+| `components/topbar.html` | v2.0.0 | Bijgewerkt: #top-auth slot links, logo midden, taalswitch rechts. 3-koloms grid. |
+| `css/topbar.css` | v2.0.0 | Bijgewerkt: 3-koloms grid layout voor auth + logo + taal. |
+| `js/app.js` | v2.2.0 | getBasePath() fix: filtert .html segmenten — lost ../  prefix bug op voor /index.html URLs. |
+| `index.html` | v2.4.0 | Alle scripts verplaatst naar onderaan body conform standaard volgorde. Supabase SDK + auth scripts toegevoegd. |
 
-### Beslissingen
-
-| Onderwerp | Beslissing |
-|-----------|-----------|
-| **AI in creator** | Anthropic API — verhaal, tips, samenvatting, captions, vertaling genereren op basis van GPX + weerdata + steekwoorden |
-| **API-key** | Gebruiker voert key in bij openen creator, wordt niet opgeslagen |
-| **Modi creator** | Handmatig (geen AI) of AI-assisted (AI stelt voor, gebruiker past aan) |
-| **GPX interpretatie** | Client-side parser berekent: afstand, duur, hoogtemeters, snelheid, steilste stukken, rustpunten, hoogste/laagste punt |
-| **Weerdata** | Open-Meteo API — historische data op basis van datum + coördinaten. Gratis, geen key. |
-| **Locatienaam** | Nominatim (OSM) — automatisch uit GPX-coördinaten. Gratis, geen key. |
-| **JSON schema** | Uitgebreid met `gpx_stats` en `weather` velden |
-
-### Nieuwe taken toegevoegd
-
-| ID | Omschrijving |
-|----|-------------|
-| T0-008 | API integraties (Open-Meteo, Nominatim, Anthropic) |
-| T3-006 | Weer-blok op routepagina |
-| T1-006 | Route creator uitgebreid met AI + GPX + weer |
-
----
-
-# END OF PROJECTLOG.md
-
-## Sessie 02d — 20-06-2026 (vervolg)
-**Onderwerp:** Creator als pre-planning tool + draft/published workflow
-**Status:** Beslissingen vastgelegd, taken bijgewerkt.
-
-### Beslissingen
+### Architectuurbeslissingen sessie 03
 
 | Onderwerp | Beslissing |
 |-----------|-----------|
-| **Creator pre-planning** | Creator ondersteunt twee statussen: `draft` (voor de wandeling) en `published` (na de wandeling) |
-| **Draft** | Velden: naam, regio, geplande datum, geschatte stats, bronlink (AllTrails). Geen GPX/weer/foto\'s. AI schrijft verwachtingsverhaal. |
-| **Published** | Draft heropenen na wandeling, GPX + weerdata + foto\'s toevoegen, AI verfijnt verhaal. |
-| **Homepage grid** | Draft-routes tonen "Binnenkort" badge, niet klikbaar. Published-routes volledig klikbaar. |
-| **JSON schema** | Uitgebreid met `status`, `planned_date`, `published_date`, `source_reference` |
+| **Script volgorde** | Altijd onderaan `<body>`: Eruda → Supabase SDK → i18next → i18n.js → auth.js → topbar-auth.js → app.js → [pagina].js |
+| **Eruda** | Niet verwijderen als aanwezig in HTML pagina |
+| **CSS** | Altijd in `<head>` |
+| **getBasePath()** | Filtert .html segmenten zodat /index.html en /routes/x.html beide depth 0 resp. 1 geven |
+| **Supabase project** | MyTrailWalks — bzcevvfesushlorymszd.supabase.co |
+| **Admin toegang creator** | Via `is_admin = true` in profiles tabel — dropdown verschijnt automatisch na inlog |
 
-### Nieuwe taken toegevoegd
-
-| ID | Omschrijving |
-|----|-------------|
-| T1-008 | Draft management — homepage badge + creator draft heropenen |
+### Nog te doen na sessie 03
+- Supabase `profiles` tabel aanmaken (SQL in auth.js commentaar)
+- Eigen account `is_admin = true` zetten via Supabase dashboard
+- Cloudinary account aanmaken (T0-007)
+- `data/content/ninglinspo.json` aanmaken (T1-005)
+- Route detail pagina (T1-002)
 
 ---
 
