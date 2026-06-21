@@ -1,26 +1,19 @@
-<!-- components/topbar.html v2.0.0
+<!-- components/topbar.html v2.1.0
+     v2.1.0: fallback login knop verwijderd — topbar-auth.js vult #top-auth volledig in
      v2.0.0: auth slot toegevoegd (#top-auth), Supabase login integratie
              Logo2.png + merknaam midden, taalswitch rechts, login links
 -->
 <header class="topbar" role="banner">
   <div class="topbar__inner">
-
     <!-- Links: auth widget — gevuld door topbar-auth.js -->
     <div class="topbar__auth" id="top-auth">
-      <!-- Fallback vóór topbar-auth.js initialiseert -->
-      <button
-        onclick="TopBarAuth && TopBarAuth.openModal()"
-        class="top-auth-login">
-        Inloggen
-      </button>
+      <!-- topbar-auth.js vult dit in — geen fallback nodig -->
     </div>
-
     <!-- Midden: logo + merknaam -->
     <a href="index.html" class="topbar__brand" aria-label="MyTrailWalks — naar homepage">
       <img src="assets/images/Logo2.png" alt="" class="topbar__logo" aria-hidden="true">
       <span class="topbar__name">MyTrailWalks</span>
     </a>
-
     <!-- Rechts: taalwisselaar -->
     <div class="topbar__right">
       <select
@@ -30,6 +23,5 @@
         <!-- Opties worden dynamisch ingevoegd door i18n.js -->
       </select>
     </div>
-
   </div>
 </header>
