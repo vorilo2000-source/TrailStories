@@ -1,10 +1,13 @@
 // =============================================================================
 // topbar-auth.js — TopBar Auth Modal & Admin Dropdown
-// MyTrailWalks v1.1.0
+// MyTrailWalks v1.3.0
 // -----------------------------------------------------------------------------
+// Changelog v1.3.0:
+// - Luistert naar i18next languageChanged event → herrendert topbar knop
+// Changelog v1.2.0:
+// - Modal wordt pas gebouwd bij openModal() zodat i18next klaar is
 // Changelog v1.1.0:
 // - Alle hardcoded teksten vervangen door i18next.t() sleutels
-// - Nieuwe auth.* sleutels in nl.json + en.json (v1.1.0)
 //
 // Dependencies: Supabase SDK, auth.js, i18next (geladen via i18n.js)
 // Load order:   auth.js → topbar-auth.js → app.js → [pagina].js
@@ -13,6 +16,10 @@
 (function () {
   "use strict";
 
+  // Huidige sessiestate bijhouden voor herrender bij taalwissel
+  var _currentUsername = null;
+  var _currentRole     = null;
+
   // ---------------------------------------------------------------------------
   // _t(key) — veilige i18next wrapper
   // ---------------------------------------------------------------------------
@@ -20,8 +27,7 @@
     if (window.i18next && window.i18next.isInitialized) {
       return window.i18next.t(key);
     }
-    // Fallback: laatste deel van de sleutel als leesbare tekst
-    return key.split(".").pop().replace(/_/g, " ");
+    return key.split(":").pop().split(".").pop().replace(/_/g, " ");
   }
 
   // ---------------------------------------------------------------------------
@@ -101,7 +107,7 @@
   }
 
   // ---------------------------------------------------------------------------
-  // _injectStyles() — ongewijzigd t.o.v. v1.0.0
+  // _injectStyles()
   // ---------------------------------------------------------------------------
   function _injectStyles() {
     if (document.getElementById("auth-modal-styles")) return;
@@ -303,6 +309,10 @@
   // _renderTopBar(username, role)
   // ---------------------------------------------------------------------------
   function _renderTopBar(username, role) {
+    // Sla op voor herrender bij taalwissel
+    _currentUsername = username;
+    _currentRole     = role;
+
     const slot = document.getElementById("top-auth");
     if (!slot) return;
 
@@ -509,6 +519,13 @@
         _renderTopBar(null, null);
       }
     });
+
+    // Herrender topbar knop bij taalwissel (v1.3.0)
+    if (window.i18next) {
+      window.i18next.on("languageChanged", function () {
+        _renderTopBar(_currentUsername, _currentRole);
+      });
+    }
 
     document.addEventListener("click", () => _closeUserDropdown());
     document.addEventListener("keydown", (e) => {
