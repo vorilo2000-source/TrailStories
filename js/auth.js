@@ -28,8 +28,8 @@
   // ---------------------------------------------------------------------------
   // ⚠️  CONFIGURATIE — vervang deze waarden na aanmaken Supabase project
   // ---------------------------------------------------------------------------
-  var SUPABASE_URL  = "JOUW_SUPABASE_URL";   // bv. https://abcdefgh.supabase.co
-  var SUPABASE_ANON = "JOUW_ANON_KEY";       // bv. sb_publishable_...
+  var SUPABASE_URL  = "https://bzcevvfesushlorymszd.supabase.co";
+  var SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ6Y2V2dmZlc3VzaGxvcnltc3pkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIwMTQ4NjIsImV4cCI6MjA5NzU5MDg2Mn0.0uHB4KdVftiHnKWeB0T2FArbNtjcZ51fvQz_PDBy72Y";
 
   // ---------------------------------------------------------------------------
   // Supabase client
