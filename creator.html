@@ -1,4 +1,4 @@
-<!-- ======================= creator.html v1.0.1 =======================
+<!-- ======================= creator.html v2.0.0 =======================
      Route creator pagina — MyTrailWalks
      Bouwt stap voor stap een route-JSON op en exporteert deze.
 
@@ -6,22 +6,21 @@
        1. GPX uploaden → automatisch berekende stats (Haversine)
        2. Datum + locatie (auto via Nominatim) + weerdata (Open-Meteo)
        3. Route-informatie (titel, moeilijkheid, regio, bron)
-       4. Foto-URLs (Cloudinary links, hero + extra)
-       5. Verhaal & tips (handmatig of AI-gegenereerd via Anthropic API)
+       4. Foto's (hero + extra Cloudinary URLs)
+       5. Verhaal & tips — blokken-editor (tekst + foto blokken, vrije volgorde)
        6. Export → downloadt [id].json
 
      Modi:
        - Handmatig: geen AI, alles zelf invullen
        - AI-assisted: Anthropic API genereert verhaal/samenvatting/tips
-         (API-sleutel ingevoerd door gebruiker, niet opgeslagen)
 
      Toegang:
        - Pagina enkel bereikbaar via admin dropdown in topbar na inlog
-       - Supabase auth via auth.js + topbar-auth.js
 
      Scripts: alle scripts onderaan <body> — standaard MyTrailWalks volgorde:
        Eruda → Supabase SDK → i18next → i18n.js → auth.js → topbar-auth.js → app.js → creator.js
 
+     v2.0.0: visuele preview, blokken-editor, JSON upload/import
      v1.0.1: scripts verplaatst naar onderaan <body> conform standaard
      v1.0.0: initiële versie
      ======================================================================= -->
@@ -64,6 +63,11 @@
           <h1>Nieuwe wandeling</h1>
         </div>
         <div class="creator-header__actions">
+          <!-- JSON import -->
+          <label class="btn btn--ghost btn--sm" title="Laad een bestaande route JSON om te bewerken" style="cursor:pointer;">
+            <input type="file" id="json-import-input" accept=".json" hidden>
+            JSON laden
+          </label>
           <button class="btn btn--ghost" id="btn-mode-toggle" title="Schakel tussen handmatig en AI-modus">
             <span class="btn-icon">✦</span>
             <span id="mode-label">AI-modus inschakelen</span>
@@ -243,22 +247,21 @@
         <section class="creator-step" id="step-photos">
           <div class="creator-step__header">
             <span class="creator-step__num">4</span>
-            <h2 class="creator-step__title">Foto's</h2>
-            <span class="creator-step__hint">Cloudinary URLs</span>
+            <h2 class="creator-step__title">Hero-foto</h2>
+            <span class="creator-step__hint">Cloudinary URL</span>
           </div>
           <div class="creator-step__body">
             <div class="field">
               <label class="field__label" for="input-hero-photo">Hero-foto URL</label>
-              <input type="url" id="input-hero-photo" class="input" placeholder="https://res.cloudinary.com/…">
+              <input type="url" id="input-hero-photo" class="input" placeholder="https://res.cloudinary.com/dgzlcqdcc/image/upload/w_1200,f_auto/…">
+              <span class="field__help">Gebruik w_1200,f_auto voor de hero-foto</span>
             </div>
-            <div id="photo-list" class="photo-list"></div>
-            <button class="btn btn--ghost btn--sm" id="btn-add-photo">+ Foto toevoegen</button>
           </div>
         </section>
 
         <hr class="step-divider">
 
-        <!-- STAP 5: Verhaal & tips -->
+        <!-- STAP 5: Verhaal & tips — blokken-editor -->
         <section class="creator-step" id="step-story">
           <div class="creator-step__header">
             <span class="creator-step__num">5</span>
@@ -266,23 +269,36 @@
             <span class="creator-step__hint ai-hint" id="ai-story-hint" hidden>AI kan dit genereren</span>
           </div>
           <div class="creator-step__body">
+
             <div class="field">
               <label class="field__label" for="input-keywords">Steekwoorden / ervaringen</label>
               <input type="text" id="input-keywords" class="input" placeholder="bv. waterval, mist, stilte, modderig pad">
               <span class="field__help">Komma-gescheiden. Gebruikt als input voor AI of als tags.</span>
             </div>
+
             <div class="field">
               <label class="field__label" for="input-intro">Korte samenvatting <span class="field__char-count" id="intro-count">0/160</span></label>
               <textarea id="input-intro" class="input input--textarea" rows="3" maxlength="160" placeholder="Eén zin die de wandeling samenvat voor de grid-weergave…"></textarea>
             </div>
+
+            <!-- Blokken-editor voor verhaal -->
             <div class="field">
-              <label class="field__label" for="input-story">Verhaal</label>
-              <textarea id="input-story" class="input input--textarea" rows="8" placeholder="Het volledige wandelverhaal…"></textarea>
+              <label class="field__label">Verhaal</label>
+              <span class="field__help" style="display:block; margin-bottom: 8px;">Voeg tekst- en fotoblokken toe in de volgorde die je wilt.</span>
+              <div class="block-editor">
+                <div class="block-list" id="block-list"></div>
+                <div class="block-add-bar">
+                  <button class="btn btn--ghost btn--sm" id="btn-add-text-block">+ Tekstblok</button>
+                  <button class="btn btn--ghost btn--sm" id="btn-add-photo-block">+ Fotoblok</button>
+                </div>
+              </div>
             </div>
+
             <div class="field">
               <label class="field__label" for="input-tips">Tips</label>
               <textarea id="input-tips" class="input input--textarea" rows="4" placeholder="Praktische tips voor wandelaars…"></textarea>
             </div>
+
             <div class="ai-actions" id="ai-actions" hidden>
               <button class="btn btn--ai" id="btn-ai-generate">
                 <span class="btn-icon">✦</span>
@@ -325,14 +341,74 @@
 
       </div><!-- /creator-form-col -->
 
-      <!-- RECHTER KOLOM: live preview -->
+      <!-- RECHTER KOLOM: visuele preview -->
       <aside class="creator-preview-col">
         <div class="preview-sticky">
           <div class="preview-header">
-            <span class="preview-header__label">Voorvertoning JSON</span>
-            <button class="link-btn link-btn--small" id="btn-copy-json">Kopieer</button>
+            <span class="preview-header__label">Voorvertoning</span>
           </div>
-          <pre class="preview-json" id="preview-json"><code>{}</code></pre>
+
+          <!-- Visuele route preview -->
+          <div class="route-preview" id="route-preview">
+
+            <!-- Hero foto -->
+            <div class="rp-hero" id="rp-hero">
+              <div class="rp-hero__placeholder" id="rp-hero-placeholder">
+                <span class="rp-hero__icon">↑</span>
+                <span class="rp-hero__text">Hero-foto verschijnt hier</span>
+              </div>
+              <img id="rp-hero-img" class="rp-hero__img" src="" alt="" hidden>
+              <div class="rp-status-badge" id="rp-status-badge">draft</div>
+            </div>
+
+            <!-- Info blok -->
+            <div class="rp-body">
+              <p class="rp-location" id="rp-location">Locatie onbekend</p>
+              <h2 class="rp-title" id="rp-title">Wandeling zonder titel</h2>
+              <p class="rp-summary" id="rp-summary"></p>
+
+              <!-- Stats -->
+              <div class="rp-stats" id="rp-stats">
+                <div class="rp-stat">
+                  <span class="rp-stat__value" id="rp-distance">—</span>
+                  <span class="rp-stat__label">afstand</span>
+                </div>
+                <div class="rp-stat">
+                  <span class="rp-stat__value" id="rp-duration">—</span>
+                  <span class="rp-stat__label">duur</span>
+                </div>
+                <div class="rp-stat">
+                  <span class="rp-stat__value" id="rp-elevation">—</span>
+                  <span class="rp-stat__label">stijging</span>
+                </div>
+                <div class="rp-stat">
+                  <span class="rp-stat__value" id="rp-difficulty">—</span>
+                  <span class="rp-stat__label">moeilijkheid</span>
+                </div>
+              </div>
+
+              <!-- Weer -->
+              <div class="rp-weather" id="rp-weather" hidden>
+                <div class="rp-weather__item" id="rp-w-temp"></div>
+                <div class="rp-weather__item" id="rp-w-precip"></div>
+                <div class="rp-weather__item" id="rp-w-wind"></div>
+                <div class="rp-weather__item" id="rp-w-date"></div>
+              </div>
+
+              <!-- Verhaal blokken preview -->
+              <div class="rp-story" id="rp-story"></div>
+
+              <!-- Kaart -->
+              <div class="rp-map" id="rp-map" hidden>
+                <p class="rp-map__label">Locatie op kaart</p>
+                <div class="rp-map__frame">
+                  <img id="rp-map-img" src="" alt="Kaart" class="rp-map__img">
+                  <span class="rp-map__credit">© OpenStreetMap</span>
+                </div>
+              </div>
+
+            </div><!-- /rp-body -->
+          </div><!-- /route-preview -->
         </div>
       </aside>
 
@@ -357,7 +433,7 @@
   <script src="js/topbar-auth.js"></script>
   <script src="js/analytics.js"></script>
   <script src="js/app.js"></script>
-  <script src="js/creator.js?v=1.1.0"></script>
+  <script src="js/creator.js?v=2.0.0"></script>
 
 </body>
 </html>
