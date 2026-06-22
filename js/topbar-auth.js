@@ -533,11 +533,16 @@
     });
   }
 
-  // Auto-init
+  // Auto-init — wacht op i18nReady zodat vertalingen gegarandeerd beschikbaar zijn
+  function startInit() {
+    const ready = window.i18nReady || Promise.resolve();
+    ready.then(init).catch(init); // init ook bij fout — pagina blijft werken
+  }
+
   if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", init);
+    document.addEventListener("DOMContentLoaded", startInit);
   } else {
-    init();
+    startInit();
   }
 
   // ---------------------------------------------------------------------------
