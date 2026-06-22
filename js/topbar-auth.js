@@ -1,6 +1,6 @@
 // =============================================================================
 // topbar-auth.js — TopBar Auth Modal & Admin Dropdown
-// MyTrailWalks v2.0.0
+// MyTrailWalks v2.1.0
 // -----------------------------------------------------------------------------
 // Changelog v2.0.0:
 // - Terugkeer naar werkende v1.0.0 structuur
@@ -542,11 +542,10 @@
   }
 
   // ---------------------------------------------------------------------------
-  // init()
+  // _renderCurrentSession()
+  // Haalt sessie op en rendert topbar — aangeroepen na appReady
   // ---------------------------------------------------------------------------
-  async function init() {
-    _injectModal();
-
+  async function _renderCurrentSession() {
     const session = await AuthModule.getSession();
 
     if (session) {
@@ -560,38 +559,49 @@
     } else {
       _renderTopBar(null, false);
     }
+  }
 
-    // Auth wijzigingen
-    AuthModule.onAuthChange(async (event, session) => {
-      if (session) {
-        const username = await _getUsernameFromSession(session);
-        let isAdmin = false;
-        try {
-          const { profile } = await AuthModule.getProfile();
-          isAdmin = profile && (profile.role === "admin" || profile.role === "creator");
-        } catch (e) { /* geen profiel */ }
-        _renderTopBar(username, isAdmin);
-      } else {
-        _renderTopBar(null, false);
-      }
-    });
+  // ---------------------------------------------------------------------------
+  // init()
+  // ---------------------------------------------------------------------------
+  async function init() {
+    // Modal alvast injecteren in body
+    _injectModal();
 
-    // Teksten bijwerken na i18next init
-    if (window.i18nReady) {
-      window.i18nReady.then(() => {
-        _updateModalTexts();
-        _renderTopBar(
-          document.getElementById("top-user-btn") ? document.getElementById("top-user-btn").querySelector("span:nth-child(2)")?.textContent : null,
-          !!document.querySelector(".dropdown-section-label")
-        );
-        // Herrender bij taalwissel
-        if (window.i18next) {
-          window.i18next.on("languageChanged", () => {
-            _updateModalTexts();
-          });
+    // Wacht tot topbar component geladen is via app.js
+    const ready = window.appReady || Promise.resolve();
+    ready.then(async () => {
+      // Render topbar knop
+      await _renderCurrentSession();
+
+      // Luister naar auth wijzigingen
+      AuthModule.onAuthChange(async (event, session) => {
+        if (session) {
+          const username = await _getUsernameFromSession(session);
+          let isAdmin = false;
+          try {
+            const { profile } = await AuthModule.getProfile();
+            isAdmin = profile && (profile.role === "admin" || profile.role === "creator");
+          } catch (e) { /* geen profiel */ }
+          _renderTopBar(username, isAdmin);
+        } else {
+          _renderTopBar(null, false);
         }
       });
-    }
+
+      // Teksten bijwerken na i18next init
+      if (window.i18nReady) {
+        window.i18nReady.then(() => {
+          _updateModalTexts();
+          if (window.i18next) {
+            window.i18next.on("languageChanged", () => {
+              _updateModalTexts();
+              _renderCurrentSession();
+            });
+          }
+        });
+      }
+    });
 
     document.addEventListener("click", () => _closeUserDropdown());
     document.addEventListener("keydown", (e) => {
