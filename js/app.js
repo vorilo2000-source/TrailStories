@@ -1,12 +1,14 @@
 // =======================================================
-// app.js — v2.2.0
-// MyTrailWalks — component injectie (topbar + footer)
-// Wijziging v2.2.0: getBasePath() filtert .html bestandsnamen
-// uit het pad, zodat /index.html en /routes/x.html beide
-// correct werken. Zelfde fix als i18n.js v1.3.0.
-// v2.1.0: Exporteert window.appReady Promise zodat home.js kan
-// wachten tot de componenten geïnjecteerd zijn voordat
-// buildLanguageSwitcher() aangeroepen wordt.
+// app.js — v3.0.0
+// MyTrailWalks — centrale init: i18n + componenten
+// =======================================================
+// Wijziging v3.0.0: robuuste init-volgorde
+//   1. i18next initialiseren met alle vaste namespaces
+//   2. topbar + footer injecteren
+//   3. window.i18nReady + window.appReady exporteren
+//   Paginascripts wachten op window.appReady.
+//   topbar-auth.js wacht op window.i18nReady.
+//   home.js en creator.js roepen geen i18nModule.init() meer aan.
 // =======================================================
 "use strict";
 
@@ -14,10 +16,7 @@ function getBasePath() {
   const segments = window.location.pathname
     .split("/")
     .filter(Boolean)
-    .filter((seg) => !seg.endsWith(".html")); // .html bestanden tellen niet mee als mapniveau
-
-  // Eerste segment is de repo-naam op GitHub Pages (bv. "MyTrailWalks")
-  // Die telt ook niet mee als diepte — enkel echte submappen daarna
+    .filter((seg) => !seg.endsWith(".html"));
   const depth = Math.max(0, segments.length - 1);
   return depth > 0 ? "../".repeat(depth) : "";
 }
@@ -52,19 +51,55 @@ function setActiveNavLink() {
   });
 }
 
+// Detecteer huidige paginanaam voor namespace
+function getPageNamespace() {
+  const path = window.location.pathname;
+  if (path.includes("creator")) return "creator";
+  return "home";
+}
+
 async function initApp() {
   const base = getBasePath();
+
+  // 1. i18next initialiseren — altijd common + auth + paginaspecifieke namespace
+  const pageNs = getPageNamespace();
+  const namespaces = ["auth", pageNs];
+
+  try {
+    await i18nModule.init(namespaces);
+  } catch (error) {
+    console.error("app.js: i18n init mislukt", error);
+  }
+
+  // 2. i18nReady resolven — topbar-auth.js wacht hierop
+  if (window._i18nResolve) window._i18nResolve();
+
+  // 3. Componenten injecteren
   await Promise.all([
     injectComponent("topbar-placeholder", `${base}components/topbar.html`),
     injectComponent("footer-placeholder", `${base}components/footer.html`),
   ]);
+
+  // 4. Vertalingen toepassen + nav links
+  i18nModule.applyTranslations();
   setActiveNavLink();
+
+  // 5. Taalwisselaar vullen
+  const selectEl = document.getElementById("languageSwitcher");
+  if (selectEl) {
+    i18nModule.buildLanguageSwitcher(selectEl);
+  }
 }
 
-// window.appReady: Promise die resolvet zodra topbar + footer
-// geïnjecteerd zijn. home.js wacht hierop vóór buildLanguageSwitcher().
+// window.i18nReady: resolvet zodra i18next klaar is
+// topbar-auth.js wacht hierop vóór modal te renderen
+window.i18nReady = new Promise((resolve) => {
+  window._i18nResolve = resolve;
+});
+
+// window.appReady: resolvet zodra i18n + componenten klaar zijn
 window.appReady = new Promise((resolve) => {
   document.addEventListener("DOMContentLoaded", () => {
-    initApp().then(resolve).catch(resolve); // resolve ook bij fout — pagina blijft werken
+    initApp().then(resolve).catch(resolve);
   });
 });
