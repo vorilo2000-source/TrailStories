@@ -1,0 +1,177 @@
+# MyTrailWalks — Sessie 05 Inbrief
+## Datum: volgende sessie na 22-06-2026
+> Doel: Cloudinary opzetten + eerste route via creator + route detail pagina
+
+---
+
+## Context
+
+MyTrailWalks is een persoonlijk visueel outdoor storytelling platform. Vanilla HTML/CSS/JS, geen frameworks. i18next voor vertalingen. Foto's via Cloudinary (extern). Statische site op GitHub Pages.
+
+---
+
+## Wat er klaar is na sessie 04
+
+| Bestand | Versie | Status |
+|---------|--------|--------|
+| `js/i18n.js` | v1.3.0 | ✅ getBasePath() fix |
+| `js/app.js` | v3.0.0 | ✅ Centrale i18n init + window.i18nReady + window.appReady |
+| `js/auth.js` | v1.1.0 | ✅ role kolom, window._supabase, redirectTo fix |
+| `js/topbar-auth.js` | v2.1.0 | ✅ i18n via _updateModalTexts(), wacht op appReady |
+| `js/analytics.js` | v1.1.0 | ✅ Supabase pageview tracking |
+| `js/creator.js` | v1.2.0 | ✅ Geen eigen i18n init |
+| `js/home.js` | v2.2.0 | ✅ Geen eigen i18n init |
+| `components/topbar.html` | v2.2.0 | ✅ Fallback inlogknop |
+| `css/topbar.css` | v2.1.0 | ✅ position: relative fix |
+| `data/i18n/nl/auth.json` | v1.0.0 | ✅ Auth modal teksten NL |
+| `data/i18n/en/auth.json` | v1.0.0 | ✅ Auth modal teksten EN |
+| `creator.html` | v1.0.1 | ✅ Route creator |
+| `index.html` | v2.4.0 | ✅ Scripts onderaan body |
+
+---
+
+## Supabase project
+
+| Gegeven | Waarde |
+|---------|--------|
+| **Project** | MyTrailWalks |
+| **URL** | `https://bzcevvfesushlorymszd.supabase.co` |
+| **Dashboard** | https://supabase.com/dashboard/project/bzcevvfesushlorymszd |
+| **Site URL** | `https://vorilo2000-source.github.io/MyTrailWalks` |
+
+### Tabellen
+
+**profiles:**
+```sql
+id uuid references auth.users primary key,
+username text,
+role text default 'gast' check (role in ('gast', 'creator', 'admin')),
+created_at timestamptz default now()
+```
+
+**page_views:**
+```sql
+id uuid primary key default gen_random_uuid(),
+page_path text not null,
+user_id uuid references auth.users,
+session_id text,
+entered_at timestamptz default now(),
+exited_at timestamptz,
+duration_seconds int
+```
+
+### RLS policies actief
+- `profiles`: select permissive voor public
+- `page_views`: insert + update + select permissive voor public
+
+### Accounts
+- **Vorilo** — role: admin
+
+---
+
+## Prioriteiten sessie 05
+
+### 1. Cloudinary opzetten (T0-007)
+
+**Stappen:**
+1. Account aanmaken op cloudinary.com (gratis, 25GB)
+2. Upload workflow documenteren:
+   - Foto uploaden via Cloudinary dashboard
+   - Directe URL kopiëren: `https://res.cloudinary.com/[cloud_name]/image/upload/[public_id]`
+3. Transformaties documenteren:
+   ```
+   https://res.cloudinary.com/[cloud]/image/upload/w_1200,f_auto/[id]  (hero)
+   https://res.cloudinary.com/[cloud]/image/upload/w_400,f_auto/[id]   (thumbnail)
+   ```
+
+### 2. Eerste route aanmaken via creator (T1-005)
+
+**Workflow:**
+1. Foto's uploaden naar Cloudinary
+2. creator.html openen via admin dropdown
+3. Velden invullen (titel, locatie, regio, moeilijkheid, datum, foto-URLs)
+4. GPX uploaden indien beschikbaar, anders handmatig stats invullen
+5. Weerdata ophalen
+6. AI gebruiken voor verhaal (optioneel)
+7. Exporteren → `[naam].json` downloaden
+8. Bestand toevoegen aan `data/content/` in repo
+
+### 3. Route detail pagina (T1-002)
+
+**Doel:** `routes/[id].html` — dynamische routepagina die een JSON inlaadt en rendert.
+
+**Onderdelen:**
+- Hero sectie (fullscreen foto)
+- Stats blok (afstand, duur, hoogtemeters, moeilijkheid, weer)
+- Verhaal (story blocks)
+- Foto galerij
+- Tips sectie
+- Kaart-knop (opent apart tabblad)
+- Print-knop
+
+### 4. Analytics dashboard (T6-005) — optioneel
+
+Eenvoudig admin-only overzicht van `page_views` data:
+- Populairste pagina's
+- Aantal bezoekers vandaag / deze week
+- Gemiddelde sessieduur
+
+---
+
+## Architectuurafspraken (bevestigd sessie 04)
+
+| Onderwerp | Afspraak |
+|-----------|---------|
+| **Script volgorde** | Eruda → Supabase SDK → i18next CDN → i18n.js → auth.js → topbar-auth.js → analytics.js → app.js → [pagina].js |
+| **Eruda** | Niet verwijderen als aanwezig in HTML pagina |
+| **CSS** | Altijd in `<head>` |
+| **Favicon** | Elke nieuwe pagina krijgt favicon tags na `<title>`, vóór CSS |
+| **Cache busting** | `?v=x.x.x` aan script tags bij elke deploy |
+| **Foto-opslag** | Cloudinary — directe URL in JSON |
+| **i18n init** | Centraal in app.js — paginascripts roepen geen init() aan |
+| **Rollen** | gast / creator / admin via `role` kolom in profiles tabel |
+| **Admin toegang** | Via `role = 'admin'` of `role = 'creator'` in profiles tabel |
+
+---
+
+## Design tokens (uit main.css)
+
+```
+--color-forest: #2C4A3B
+--color-forest-dark: #1C3328
+--color-earth: #8C6A4F
+--color-water: #4C7A89
+--color-cream: #F6F1E7
+--color-charcoal: #2B2926
+--color-charcoal-soft: #5C5752
+--color-line: #DDD4C2
+--font-display: Fraunces
+--font-body: Inter
+--font-mono: JetBrains Mono
+--content-max-width: 1200px
+--content-narrow-width: 720px
+```
+
+---
+
+## GitHub Pages
+
+| Gegeven | Waarde |
+|---------|--------|
+| **URL** | `https://vorilo2000-source.github.io/MyTrailWalks/` |
+| **Repo** | vorilo2000-source/MyTrailWalks |
+
+---
+
+## Werkwijze
+
+1. Vraag altijd toestemming vóór uitvoering
+2. Check of gebruiker informatie heeft voordat je zelf zoekt
+3. Bouw in kleine iteraties
+4. Geef korte uitleg ná elke taak
+5. Eruda niet verwijderen uit HTML pagina's
+6. Update backlog + projectlog aan einde sessie
+
+---
+
+# END OF SESSIE_05_INBRIEF.md
