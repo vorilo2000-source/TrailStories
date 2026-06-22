@@ -313,6 +313,10 @@
     _currentUsername = username;
     _currentRole     = role;
 
+    // Sluit modal als die nog open is (bv. na inloggen of paginanavigatie)
+    const existingModal = document.getElementById("auth-modal-root");
+    if (existingModal) existingModal.remove();
+
     const slot = document.getElementById("top-auth");
     if (!slot) return;
 
