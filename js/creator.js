@@ -1,6 +1,7 @@
 // =======================================================
 // creator.js — MyTrailWalks
 // Route creator: GPX parse, weer, locatie, AI, JSON export
+// Wijziging v1.1.0: i18nModule.init() toegevoegd in INIT
 // =======================================================
 "use strict";
 
@@ -11,9 +12,9 @@ const state = {
   aiMode: false,
   apiKey: null,
   apiKeyConfirmed: false,
-  gpx: null,        // parsed GPX data
-  weather: null,    // weather data van Open-Meteo
-  photos: [],       // extra foto URLs (excl. hero)
+  gpx: null,
+  weather: null,
+  photos: [],
 };
 
 // -----------------------------------------------------------
@@ -22,7 +23,6 @@ const state = {
 const $ = (id) => document.getElementById(id);
 
 const els = {
-  // Modus
   btnModeToggle: $("btn-mode-toggle"),
   modeLabel: $("mode-label"),
   apiKeyBar: $("api-key-bar"),
@@ -31,16 +31,12 @@ const els = {
   aiActions: $("ai-actions"),
   aiStoryHint: $("ai-story-hint"),
   btnAiGenerate: $("btn-ai-generate"),
-
-  // GPX
   gpxDropZone: $("gpx-drop-zone"),
   gpxFileInput: $("gpx-file-input"),
   gpxBrowseBtn: $("gpx-browse-btn"),
   gpxStats: $("gpx-stats"),
   gpxResetBtn: $("gpx-reset-btn"),
   gpxStatus: $("gpx-status"),
-
-  // Stats display
   statDistance: $("stat-distance"),
   statDuration: $("stat-duration"),
   statEleUp: $("stat-ele-up"),
@@ -49,8 +45,6 @@ const els = {
   statLowest: $("stat-lowest"),
   statAvgSpeed: $("stat-avg-speed"),
   statMaxSpeed: $("stat-max-speed"),
-
-  // Meta
   inputDate: $("input-date"),
   inputLocation: $("input-location"),
   btnFetchLocation: $("btn-fetch-location"),
@@ -62,31 +56,21 @@ const els = {
   wPrecip: $("w-precip"),
   wWind: $("w-wind"),
   inputWeatherCondition: $("input-weather-condition"),
-
-  // Route info
   inputTitle: $("input-title"),
   inputDifficulty: $("input-difficulty"),
   inputRegion: $("input-region"),
   inputSource: $("input-source"),
-
-  // Foto's
   inputHeroPhoto: $("input-hero-photo"),
   photoList: $("photo-list"),
   btnAddPhoto: $("btn-add-photo"),
-
-  // Verhaal
   inputKeywords: $("input-keywords"),
   inputIntro: $("input-intro"),
   introCount: $("intro-count"),
   inputStory: $("input-story"),
   inputTips: $("input-tips"),
-
-  // Export
   inputRouteId: $("input-route-id"),
   inputStatus: $("input-status"),
   btnExport: $("btn-export"),
-
-  // Preview
   previewJson: $("preview-json"),
   btnCopyJson: $("btn-copy-json"),
 };
@@ -104,7 +88,6 @@ els.btnModeToggle.addEventListener("click", () => {
   updatePreview();
 });
 
-// API key bevestigen
 els.btnKeyConfirm.addEventListener("click", () => {
   const key = els.inputApiKey.value.trim();
   if (!key.startsWith("sk-ant-")) {
@@ -113,8 +96,8 @@ els.btnKeyConfirm.addEventListener("click", () => {
   }
   state.apiKey = key;
   state.apiKeyConfirmed = true;
-  els.inputApiKey.value = "••••••••••••••••••••";
-  els.btnKeyConfirm.textContent = "✓ Bevestigd";
+  els.inputApiKey.value = "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022";
+  els.btnKeyConfirm.textContent = "\u2713 Bevestigd";
   els.btnKeyConfirm.disabled = true;
 });
 
@@ -171,17 +154,12 @@ function handleGpxFile(file) {
     }
     state.gpx = gpxData;
     displayGpxStats(gpxData);
-
-    // Auto-vul datum als leeg
     if (!els.inputDate.value && gpxData.date) {
       els.inputDate.value = gpxData.date;
     }
-
-    // Auto-fetch locatie als coördinaten beschikbaar
     if (gpxData.startLat && gpxData.startLon) {
       fetchLocationName(gpxData.startLat, gpxData.startLon);
     }
-
     updatePreview();
   };
   reader.readAsText(file);
@@ -189,14 +167,12 @@ function handleGpxFile(file) {
 
 // -----------------------------------------------------------
 // GPX PARSER
-// Berekent: afstand, duur, hoogtemeters, snelheden, punten
 // -----------------------------------------------------------
 function parseGpx(xmlText) {
   try {
     const parser = new DOMParser();
     const doc = parser.parseFromString(xmlText, "application/xml");
     const trkpts = Array.from(doc.querySelectorAll("trkpt"));
-
     if (trkpts.length < 2) return null;
 
     let totalDistance = 0;
@@ -212,24 +188,19 @@ function parseGpx(xmlText) {
     for (let i = 1; i < trkpts.length; i++) {
       const prev = trkpts[i - 1];
       const curr = trkpts[i];
-
       const lat1 = parseFloat(prev.getAttribute("lat"));
       const lon1 = parseFloat(prev.getAttribute("lon"));
       const lat2 = parseFloat(curr.getAttribute("lat"));
       const lon2 = parseFloat(curr.getAttribute("lon"));
       const ele1 = parseFloat(prev.querySelector("ele")?.textContent || 0);
       const ele2 = parseFloat(curr.querySelector("ele")?.textContent || 0);
-
       const dist = haversine(lat1, lon1, lat2, lon2);
       totalDistance += dist;
-
       const eleDiff = ele2 - ele1;
       if (eleDiff > 0) elevationUp += eleDiff;
       else elevationDown += Math.abs(eleDiff);
-
       highestPoint = Math.max(highestPoint, ele1, ele2);
       lowestPoint = Math.min(lowestPoint, ele1, ele2);
-
       const timeEl1 = prev.querySelector("time");
       const timeEl2 = curr.querySelector("time");
       if (timeEl1 && timeEl2) {
@@ -237,7 +208,7 @@ function parseGpx(xmlText) {
         const t2 = new Date(timeEl2.textContent);
         if (!startTime) startTime = t1;
         endTime = t2;
-        const timeDiff = (t2 - t1) / 3600000; // uren
+        const timeDiff = (t2 - t1) / 3600000;
         if (timeDiff > 0) {
           const speed = (dist / 1000) / timeDiff;
           speeds.push(speed);
@@ -249,21 +220,11 @@ function parseGpx(xmlText) {
     const firstPt = trkpts[0];
     const startLat = parseFloat(firstPt.getAttribute("lat"));
     const startLon = parseFloat(firstPt.getAttribute("lon"));
-
-    const durationHours = startTime && endTime
-      ? ((endTime - startTime) / 3600000)
-      : null;
-
-    const avgSpeed = speeds.length > 0
-      ? speeds.reduce((a, b) => a + b, 0) / speeds.length
-      : null;
-
-    // Datum uit GPX time
+    const durationHours = startTime && endTime ? ((endTime - startTime) / 3600000) : null;
+    const avgSpeed = speeds.length > 0 ? speeds.reduce((a, b) => a + b, 0) / speeds.length : null;
     let date = null;
     const firstTime = trkpts[0].querySelector("time");
-    if (firstTime) {
-      date = firstTime.textContent.split("T")[0];
-    }
+    if (firstTime) date = firstTime.textContent.split("T")[0];
 
     return {
       distance_km: Math.round(totalDistance / 10) / 100,
@@ -284,32 +245,28 @@ function parseGpx(xmlText) {
   }
 }
 
-// Haversine afstand in meters
 function haversine(lat1, lon1, lat2, lon2) {
   const R = 6371000;
   const phi1 = (lat1 * Math.PI) / 180;
   const phi2 = (lat2 * Math.PI) / 180;
   const dPhi = ((lat2 - lat1) * Math.PI) / 180;
   const dLambda = ((lon2 - lon1) * Math.PI) / 180;
-  const a =
-    Math.sin(dPhi / 2) ** 2 +
-    Math.cos(phi1) * Math.cos(phi2) * Math.sin(dLambda / 2) ** 2;
+  const a = Math.sin(dPhi / 2) ** 2 + Math.cos(phi1) * Math.cos(phi2) * Math.sin(dLambda / 2) ** 2;
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
 function displayGpxStats(gpx) {
-  els.statDistance.textContent = gpx.distance_km ? `${gpx.distance_km} km` : "—";
-  els.statDuration.textContent = gpx.duration_hours ? `${gpx.duration_hours} u` : "—";
-  els.statEleUp.textContent = gpx.elevation_up_m ? `+${gpx.elevation_up_m} m` : "—";
-  els.statEleDown.textContent = gpx.elevation_down_m ? `-${gpx.elevation_down_m} m` : "—";
-  els.statHighest.textContent = gpx.highest_point_m ? `${gpx.highest_point_m} m` : "—";
-  els.statLowest.textContent = gpx.lowest_point_m ? `${gpx.lowest_point_m} m` : "—";
-  els.statAvgSpeed.textContent = gpx.avg_speed_kmh ? `${gpx.avg_speed_kmh} km/u` : "—";
-  els.statMaxSpeed.textContent = gpx.max_speed_kmh ? `${gpx.max_speed_kmh} km/u` : "—";
-
+  els.statDistance.textContent = gpx.distance_km ? `${gpx.distance_km} km` : "\u2014";
+  els.statDuration.textContent = gpx.duration_hours ? `${gpx.duration_hours} u` : "\u2014";
+  els.statEleUp.textContent = gpx.elevation_up_m ? `+${gpx.elevation_up_m} m` : "\u2014";
+  els.statEleDown.textContent = gpx.elevation_down_m ? `-${gpx.elevation_down_m} m` : "\u2014";
+  els.statHighest.textContent = gpx.highest_point_m ? `${gpx.highest_point_m} m` : "\u2014";
+  els.statLowest.textContent = gpx.lowest_point_m ? `${gpx.lowest_point_m} m` : "\u2014";
+  els.statAvgSpeed.textContent = gpx.avg_speed_kmh ? `${gpx.avg_speed_kmh} km/u` : "\u2014";
+  els.statMaxSpeed.textContent = gpx.max_speed_kmh ? `${gpx.max_speed_kmh} km/u` : "\u2014";
   els.gpxDropZone.hidden = true;
   els.gpxStats.hidden = false;
-  els.gpxStatus.textContent = "✓ Geladen";
+  els.gpxStatus.textContent = "\u2713 Geladen";
 }
 
 // -----------------------------------------------------------
@@ -317,11 +274,9 @@ function displayGpxStats(gpx) {
 // -----------------------------------------------------------
 async function fetchLocationName(lat, lon) {
   try {
-    els.btnFetchLocation.textContent = "…";
+    els.btnFetchLocation.textContent = "\u2026";
     const url = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`;
-    const resp = await fetch(url, {
-      headers: { "Accept-Language": "nl" }
-    });
+    const resp = await fetch(url, { headers: { "Accept-Language": "nl" } });
     const data = await resp.json();
     const addr = data.address || {};
     const location = [
@@ -333,7 +288,7 @@ async function fetchLocationName(lat, lon) {
   } catch (err) {
     console.warn("Nominatim fout:", err);
   } finally {
-    els.btnFetchLocation.textContent = "↺";
+    els.btnFetchLocation.textContent = "\u21BA";
     updatePreview();
   }
 }
@@ -351,20 +306,14 @@ async function fetchWeather() {
   const date = els.inputDate.value;
   const lat = state.gpx?.startLat;
   const lon = state.gpx?.startLon;
-
   if (!date) { alert("Kies eerst een wandeldatum."); return; }
-  if (!lat || !lon) { alert("Laad eerst een GPX-bestand (voor coördinaten)."); return; }
+  if (!lat || !lon) { alert("Laad eerst een GPX-bestand (voor co\u00f6rdinaten)."); return; }
 
-  els.btnFetchWeather.textContent = "Ophalen…";
+  els.btnFetchWeather.textContent = "Ophalen\u2026";
   els.btnFetchWeather.disabled = true;
 
   try {
-    const url = `https://archive-api.open-meteo.com/v1/archive` +
-      `?latitude=${lat}&longitude=${lon}` +
-      `&start_date=${date}&end_date=${date}` +
-      `&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,wind_speed_10m_max` +
-      `&timezone=Europe/Brussels`;
-
+    const url = `https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lon}&start_date=${date}&end_date=${date}&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,wind_speed_10m_max&timezone=Europe/Brussels`;
     const resp = await fetch(url);
     const data = await resp.json();
     const d = data.daily;
@@ -379,15 +328,10 @@ async function fetchWeather() {
       source: "Open-Meteo",
     };
 
-    els.wTempMin.textContent = state.weather.temperature_min !== null
-      ? `${state.weather.temperature_min}°C` : "—";
-    els.wTempMax.textContent = state.weather.temperature_max !== null
-      ? `${state.weather.temperature_max}°C` : "—";
-    els.wPrecip.textContent = state.weather.precipitation_mm !== null
-      ? `${state.weather.precipitation_mm} mm` : "—";
-    els.wWind.textContent = state.weather.wind_kmh !== null
-      ? `${state.weather.wind_kmh} km/u` : "—";
-
+    els.wTempMin.textContent = state.weather.temperature_min !== null ? `${state.weather.temperature_min}\u00b0C` : "\u2014";
+    els.wTempMax.textContent = state.weather.temperature_max !== null ? `${state.weather.temperature_max}\u00b0C` : "\u2014";
+    els.wPrecip.textContent = state.weather.precipitation_mm !== null ? `${state.weather.precipitation_mm} mm` : "\u2014";
+    els.wWind.textContent = state.weather.wind_kmh !== null ? `${state.weather.wind_kmh} km/u` : "\u2014";
     els.weatherBlock.hidden = false;
     updatePreview();
   } catch (err) {
@@ -408,16 +352,14 @@ els.btnRefetchWeather.addEventListener("click", fetchWeather);
 els.btnAddPhoto.addEventListener("click", () => {
   const idx = state.photos.length;
   state.photos.push("");
-
   const entry = document.createElement("div");
   entry.className = "photo-entry";
   entry.dataset.idx = idx;
   entry.innerHTML = `
-    <input type="url" class="input photo-url-input" placeholder="https://res.cloudinary.com/…" data-idx="${idx}">
-    <button class="photo-entry__remove" title="Verwijder foto" data-idx="${idx}">✕</button>
+    <input type="url" class="input photo-url-input" placeholder="https://res.cloudinary.com/\u2026" data-idx="${idx}">
+    <button class="photo-entry__remove" title="Verwijder foto" data-idx="${idx}">\u2715</button>
   `;
   els.photoList.appendChild(entry);
-
   entry.querySelector(".photo-url-input").addEventListener("input", (e) => {
     state.photos[parseInt(e.target.dataset.idx)] = e.target.value;
     updatePreview();
@@ -426,7 +368,6 @@ els.btnAddPhoto.addEventListener("click", () => {
     const i = parseInt(e.target.dataset.idx);
     state.photos.splice(i, 1);
     entry.remove();
-    // Herindex overige entries
     document.querySelectorAll(".photo-entry").forEach((el, newIdx) => {
       el.dataset.idx = newIdx;
       el.querySelector(".photo-url-input").dataset.idx = newIdx;
@@ -445,7 +386,7 @@ els.inputIntro.addEventListener("input", () => {
 });
 
 // -----------------------------------------------------------
-// LIVE PREVIEW — update bij elke wijziging
+// LIVE PREVIEW
 // -----------------------------------------------------------
 function buildRouteJson() {
   const id = els.inputRouteId.value.trim() || "nieuwe-route";
@@ -457,61 +398,40 @@ function buildRouteJson() {
     if (url.trim()) allPhotos.push({ url: url.trim(), caption: "" });
   });
 
-  const obj = {
+  return {
     id,
     status: els.inputStatus.value,
     published_date: els.inputDate.value || null,
-    title: {
-      nl: els.inputTitle.value.trim(),
-      en: "",
-    },
+    title: { nl: els.inputTitle.value.trim(), en: "" },
     location: els.inputLocation.value.trim(),
     region: els.inputRegion.value.trim(),
     difficulty: els.inputDifficulty.value || null,
     source_reference: els.inputSource.value.trim() || null,
-    tags: els.inputKeywords.value
-      .split(",")
-      .map((k) => k.trim())
-      .filter(Boolean),
-    summary: {
-      nl: els.inputIntro.value.trim(),
-      en: "",
-    },
-    story: {
-      nl: els.inputStory.value.trim(),
-      en: "",
-    },
-    tips: {
-      nl: els.inputTips.value.trim(),
-      en: "",
-    },
+    tags: els.inputKeywords.value.split(",").map((k) => k.trim()).filter(Boolean),
+    summary: { nl: els.inputIntro.value.trim(), en: "" },
+    story: { nl: els.inputStory.value.trim(), en: "" },
+    tips: { nl: els.inputTips.value.trim(), en: "" },
     photos: allPhotos,
-    gpx_stats: state.gpx
-      ? {
-          distance_km: state.gpx.distance_km,
-          duration_hours: state.gpx.duration_hours,
-          elevation_up_m: state.gpx.elevation_up_m,
-          elevation_down_m: state.gpx.elevation_down_m,
-          avg_speed_kmh: state.gpx.avg_speed_kmh,
-          max_speed_kmh: state.gpx.max_speed_kmh,
-          highest_point_m: state.gpx.highest_point_m,
-          lowest_point_m: state.gpx.lowest_point_m,
-        }
-      : null,
-    weather: state.weather
-      ? {
-          date: state.weather.date,
-          temperature_min: state.weather.temperature_min,
-          temperature_max: state.weather.temperature_max,
-          precipitation_mm: state.weather.precipitation_mm,
-          wind_kmh: state.weather.wind_kmh,
-          condition: els.inputWeatherCondition.value.trim(),
-          source: "Open-Meteo",
-        }
-      : null,
+    gpx_stats: state.gpx ? {
+      distance_km: state.gpx.distance_km,
+      duration_hours: state.gpx.duration_hours,
+      elevation_up_m: state.gpx.elevation_up_m,
+      elevation_down_m: state.gpx.elevation_down_m,
+      avg_speed_kmh: state.gpx.avg_speed_kmh,
+      max_speed_kmh: state.gpx.max_speed_kmh,
+      highest_point_m: state.gpx.highest_point_m,
+      lowest_point_m: state.gpx.lowest_point_m,
+    } : null,
+    weather: state.weather ? {
+      date: state.weather.date,
+      temperature_min: state.weather.temperature_min,
+      temperature_max: state.weather.temperature_max,
+      precipitation_mm: state.weather.precipitation_mm,
+      wind_kmh: state.weather.wind_kmh,
+      condition: els.inputWeatherCondition.value.trim(),
+      source: "Open-Meteo",
+    } : null,
   };
-
-  return obj;
 }
 
 function updatePreview() {
@@ -519,7 +439,6 @@ function updatePreview() {
   els.previewJson.querySelector("code").textContent = JSON.stringify(json, null, 2);
 }
 
-// Live update bij alle input-velden
 document.querySelectorAll(".input").forEach((el) => {
   el.addEventListener("input", updatePreview);
   el.addEventListener("change", updatePreview);
@@ -558,7 +477,7 @@ els.btnAiGenerate.addEventListener("click", async () => {
   }
 
   els.btnAiGenerate.classList.add("is-loading");
-  els.btnAiGenerate.textContent = "✦ Genereren…";
+  els.btnAiGenerate.textContent = "\u2746 Genereren\u2026";
 
   const prompt = `Je schrijft Nederlandse wandelverhalen voor MyTrailWalks, een persoonlijk outdoor storytelling platform.
 
@@ -568,11 +487,11 @@ Gegevens van de wandeling:
 - Moeilijkheid: ${difficulty || "onbekend"}
 - Steekwoorden / ervaringen: ${keywords || "geen"}
 ${gpx ? `- Afstand: ${gpx.distance_km} km, Duur: ${gpx.duration_hours} uur, Stijging: ${gpx.elevation_up_m} m` : ""}
-${weather ? `- Weer: min ${weather.temperature_min}°C, max ${weather.temperature_max}°C, neerslag ${weather.precipitation_mm} mm, wind ${weather.wind_kmh} km/u` : ""}
+${weather ? `- Weer: min ${weather.temperature_min}\u00b0C, max ${weather.temperature_max}\u00b0C, neerslag ${weather.precipitation_mm} mm, wind ${weather.wind_kmh} km/u` : ""}
 
 Genereer ALLEEN een JSON-object (geen uitleg, geen markdown) met deze velden:
 {
-  "summary": "Eén zin samenvatting van max 160 tekens voor de grid-weergave.",
+  "summary": "E\u00e9n zin samenvatting van max 160 tekens voor de grid-weergave.",
   "story": "Volledig wandelverhaal in 3-5 alinea's. Persoonlijk, beschrijvend, no clickbait.",
   "tips": "2-4 praktische tips voor wandelaars, als doorlopende tekst."
 }`;
@@ -594,9 +513,7 @@ Genereer ALLEEN een JSON-object (geen uitleg, geen markdown) met deze velden:
 
     const data = await response.json();
     const text = data.content?.map((c) => c.text || "").join("") || "";
-
-    // Strip eventuele markdown code fences
-    const clean = text.replace(/```json|```/g, "").trim();
+    const clean = text.replace(/\`\`\`json|\`\`\`/g, "").trim();
     const parsed = JSON.parse(clean);
 
     if (parsed.summary) els.inputIntro.value = parsed.summary;
@@ -610,12 +527,12 @@ Genereer ALLEEN een JSON-object (geen uitleg, geen markdown) met deze velden:
     alert("AI-generatie mislukt. Controleer je API-sleutel en verbinding.");
   } finally {
     els.btnAiGenerate.classList.remove("is-loading");
-    els.btnAiGenerate.innerHTML = '<span class="btn-icon">✦</span> Genereer met AI';
+    els.btnAiGenerate.innerHTML = '<span class="btn-icon">\u2746</span> Genereer met AI';
   }
 });
 
 // -----------------------------------------------------------
-// JSON EXPORT (download)
+// JSON EXPORT
 // -----------------------------------------------------------
 els.btnExport.addEventListener("click", () => {
   const id = els.inputRouteId.value.trim();
@@ -624,7 +541,6 @@ els.btnExport.addEventListener("click", () => {
     els.inputRouteId.focus();
     return;
   }
-
   const json = buildRouteJson();
   const blob = new Blob([JSON.stringify(json, null, 2)], { type: "application/json" });
   const url = URL.createObjectURL(blob);
@@ -654,10 +570,20 @@ function showInlineError(inputEl, message) {
 }
 
 // -----------------------------------------------------------
-// INIT
+// INIT — v1.1.0: i18nModule.init() toegevoegd
 // -----------------------------------------------------------
-window.appReady.then(() => {
-  // i18n: laad creator namespace als die later aangemaakt wordt
-  // Voor nu geen creator-specifieke i18n keys — common volstaat
+window.appReady.then(async () => {
+  try {
+    await i18nModule.init(["auth"]);
+    i18nModule.applyTranslations();
+  } catch (error) {
+    console.error("creator.js: i18n init mislukt", error);
+  }
+
+  const selectEl = document.getElementById("languageSwitcher");
+  if (selectEl) {
+    i18nModule.buildLanguageSwitcher(selectEl);
+  }
+
   updatePreview();
 });
