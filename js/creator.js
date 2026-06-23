@@ -372,6 +372,7 @@ function handleGpxFile(file) {
     if (gpxData.startLat && gpxData.startLon) {
       fetchLocationName(gpxData.startLat, gpxData.startLon);
     }
+    applyCalculatedDifficulty();
     updatePreview();
   };
   reader.readAsText(file);
@@ -545,6 +546,7 @@ async function fetchWeather() {
     els.wPrecip.textContent = state.weather.precipitation_mm !== null ? `${state.weather.precipitation_mm} mm` : "—";
     els.wWind.textContent = state.weather.wind_kmh !== null ? `${state.weather.wind_kmh} km/u` : "—";
     els.weatherBlock.hidden = false;
+    applyCalculatedDifficulty();
     updatePreview();
   } catch (err) {
     console.error("Weerdata fout:", err);
@@ -557,6 +559,44 @@ async function fetchWeather() {
 
 els.btnFetchWeather.addEventListener("click", fetchWeather);
 els.btnRefetchWeather.addEventListener("click", fetchWeather);
+
+// -----------------------------------------------------------
+// MOEILIJKHEID BEREKENEN
+// -----------------------------------------------------------
+function calculateDifficulty() {
+  const gpx = state.gpx;
+  const weather = state.weather;
+  if (!gpx) return null;
+
+  let score = 0;
+
+  // Afstand: 1 punt per km
+  if (gpx.distance_km) score += gpx.distance_km;
+
+  // Stijging: 1 punt per 100m
+  if (gpx.elevation_up_m) score += gpx.elevation_up_m / 100;
+
+  // Weer
+  if (weather) {
+    if (weather.temperature_max >= 25) score += 2;
+    if (weather.precipitation_mm >= 5) score += 2;
+    if (weather.wind_kmh >= 30) score += 1;
+  }
+
+  if (score <= 7) return "easy";
+  if (score <= 14) return "medium";
+  return "hard";
+}
+
+function applyCalculatedDifficulty() {
+  const difficulty = calculateDifficulty();
+  if (!difficulty) return;
+  // Alleen invullen als gebruiker nog niets gekozen heeft
+  if (!els.inputDifficulty.value) {
+    els.inputDifficulty.value = difficulty;
+    updatePreview();
+  }
+}
 
 // -----------------------------------------------------------
 // KARAKTER TELLER INTRO
