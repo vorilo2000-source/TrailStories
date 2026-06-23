@@ -657,7 +657,7 @@ function updatePreview() {
   if (weather) {
     $("rp-w-temp").innerHTML = `<span class="rp-weather__icon">🌡</span> ${weather.temperature_min ?? "—"}° – ${weather.temperature_max ?? "—"}°C`;
     $("rp-w-precip").innerHTML = `<span class="rp-weather__icon">💧</span> ${weather.precipitation_mm ?? "—"} mm`;
-    $("rp-w-wind").innerHTML = `<span class="rp-weather__icon">💨</span> ${weather.wind_kmh ?? "—"} km/u`;
+    $("rp-w-wind").innerHTML = `<span class="rp-weather__icon">🍃</span> ${weather.wind_kmh ?? "—"} km/u`;
     const dateStr = weather.date ? new Date(weather.date).toLocaleDateString("nl-BE", { day: "numeric", month: "long", year: "numeric" }) : "—";
     $("rp-w-date").innerHTML = `<span class="rp-weather__icon">📅</span> ${dateStr}`;
     weatherEl.hidden = false;
