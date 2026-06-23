@@ -174,7 +174,18 @@
                 </div>
               </div>
             </div>
-            <div class="weather-block" id="weather-block" hidden>
+            <div class="field">
+              <label class="field__label">Vervoersmiddel</label>
+              <div class="transport-select" id="transport-select">
+                <label class="transport-option"><input type="checkbox" value="walking"> 🚶 Wandelen</label>
+                <label class="transport-option"><input type="checkbox" value="cycling"> 🚴 Fietsen</label>
+                <label class="transport-option"><input type="checkbox" value="motorcycle"> 🏍 Motor</label>
+                <label class="transport-option"><input type="checkbox" value="car"> 🚗 Auto</label>
+                <label class="transport-option"><input type="checkbox" value="train"> 🚆 Trein</label>
+                <label class="transport-option"><input type="checkbox" value="bus"> 🚌 Bus</label>
+              </div>
+              <span class="field__help">Meerdere opties mogelijk</span>
+            </div>
               <div class="weather-block__header">
                 <span class="weather-block__label">Weerdata — Open-Meteo</span>
                 <button class="link-btn link-btn--small" id="btn-refetch-weather">Opnieuw ophalen</button>
