@@ -1,9 +1,9 @@
 <!-- =======================================================
-     index.html — v2.4.0
+     index.html — v2.5.0
      MyTrailWalks — homepage
-     Structuur: topbar → hero → route-grid → footer
+     Structuur: topbar → hero → wandelingen sectie → footer
+     v2.5.0: wandelingen sectie met 3 recente routes + link naar wandelingen.html
      v2.4.0: alle scripts verplaatst naar onderaan <body>
-             zodat DOM klaar is vóór scripts laden
      v2.3.0: Supabase SDK + auth.js + topbar-auth.js toegevoegd
      v2.2.0: Favicon toegevoegd
      ======================================================= -->
@@ -13,13 +13,11 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>MyTrailWalks</title>
-
     <!-- Favicon -->
     <link rel="icon" type="image/x-icon" href="assets/images/favicon.ico">
     <link rel="icon" type="image/png" sizes="32x32" href="assets/images/favicon-32x32.png">
     <link rel="apple-touch-icon" sizes="180x180" href="assets/images/favicon-180x180.png">
     <link rel="icon" type="image/png" sizes="192x192" href="assets/images/favicon-192x192.png">
-
     <!-- CSS -->
     <link rel="stylesheet" href="css/main.css" />
     <link rel="stylesheet" href="css/topbar.css" />
@@ -30,12 +28,13 @@
     <!-- Eruda debugger — niet verwijderen -->
     <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
     <script>eruda.init();</script>
-
     <div id="topbar-placeholder" class="topbar-placeholder" aria-hidden="true"></div>
     <a href="#main-content" class="skip-link" data-i18n-aria="common:nav.skip_to_content">
       <span data-i18n="common:nav.skip_to_content"></span>
     </a>
     <main id="main-content" class="main-content">
+
+      <!-- Hero -->
       <section class="hero" aria-label="Intro">
         <div class="hero__bg"></div>
         <div class="hero__overlay"></div>
@@ -43,32 +42,35 @@
           <p class="hero__eyebrow" data-i18n="home:hero.tagline"></p>
           <h1 class="hero__title" data-i18n="home:hero.title"></h1>
           <p class="hero__subtitle" data-i18n="home:hero.sub"></p>
-          <a href="#routes-grid" class="hero__cta" data-i18n="home:hero.cta"></a>
+          <a href="#wandelingen" class="hero__cta" data-i18n="home:hero.cta"></a>
         </div>
       </section>
-      <section class="routes-section container" aria-labelledby="routes-heading">
-        <h2 id="routes-heading" class="routes-section__heading" data-i18n="home:grid.heading"></h2>
+
+      <!-- Wandelingen sectie: 3 meest recente routes -->
+      <section class="routes-section container" id="wandelingen" aria-labelledby="routes-heading">
+        <div class="routes-section__header">
+          <h2 id="routes-heading" class="routes-section__heading" data-i18n="home:grid.heading">Wandelingen</h2>
+          <a href="wandelingen.html" class="routes-section__meer">Alle wandelingen →</a>
+        </div>
         <div id="routes-grid" class="routes-grid" role="list">
-          <!-- Tiles worden dynamisch ingevuld door js/home.js -->
+          <!-- Top 3 routes worden dynamisch ingevuld door js/home.js -->
         </div>
       </section>
+
     </main>
     <div id="footer-placeholder" class="footer-placeholder" aria-hidden="true"></div>
-
     <!-- Supabase SDK -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-
     <!-- i18next CDN -->
     <script src="https://cdn.jsdelivr.net/npm/i18next@23/i18next.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/i18next-http-backend@2/i18nextHttpBackend.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/i18next-browser-languagedetector@7/i18nextBrowserLanguageDetector.min.js"></script>
-
     <!-- Scripts: volgorde conform architectuurafspraken -->
     <script src="js/i18n.js"></script>
-  <script src="js/auth.js?v=1.1.0"></script>
-   <script src="js/topbar-auth.js?v=1.3.0"></script>
-   <script src="js/analytics.js?v=1.1.0"></script>
+    <script src="js/auth.js?v=1.1.0"></script>
+    <script src="js/topbar-auth.js?v=1.3.0"></script>
+    <script src="js/analytics.js?v=1.1.0"></script>
     <script src="js/app.js"></script>
-   <script src="js/home.js?v=2.1.0"></script>
+    <script src="js/home.js?v=2.2.0"></script>
   </body>
 </html>
