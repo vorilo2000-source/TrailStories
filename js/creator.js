@@ -15,7 +15,8 @@ const state = {
   apiKeyConfirmed: false,
   gpx: null,
   weather: null,
-  storyBlocks: [], // [{ type: 'text'|'photo', value: string }]
+  storyBlocks: [], // [{ type: 'text'|'photo'|'photo-grid'|'link', value, cols?, name?, url? }]
+  galleryPhotos: [], // [{ url: string }] — galerij onderaan de pagina
 };
 
 // -----------------------------------------------------------
@@ -74,6 +75,10 @@ const els = {
   blockList: $("block-list"),
   btnAddTextBlock: $("btn-add-text-block"),
   btnAddPhotoBlock: $("btn-add-photo-block"),
+  btnAddPhotoGridBlock: $("btn-add-photo-grid-block"),
+  btnAddLinkBlock: $("btn-add-link-block"),
+  galleryList: $("gallery-list"),
+  btnAddGalleryPhoto: $("btn-add-gallery-photo"),
 };
 
 // -----------------------------------------------------------
@@ -220,6 +225,12 @@ function loadJsonIntoForm(data) {
     };
   }
 
+  // Galerij
+  if (data.gallery?.length) {
+    state.galleryPhotos = data.gallery.map((p) => ({ url: p.url || "" }));
+    renderGallery();
+  }
+
   renderBlockEditor();
   updatePreview();
 }
@@ -239,18 +250,43 @@ function renderBlockEditor() {
 
     let bodyHtml = "";
     if (block.type === "text") {
-      const escaped = block.value.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+      const escaped = (block.value || "").replace(/</g, "&lt;").replace(/>/g, "&gt;");
       bodyHtml = `
         <div class="block-item__label">Tekst</div>
         <textarea class="block-textarea input input--textarea" rows="4" placeholder="Schrijf een alinea\u2026" data-idx="${i}">${escaped}</textarea>
       `;
-    } else {
+    } else if (block.type === "photo") {
       bodyHtml = `
-        <div class="block-item__label">Foto — Cloudinary URL</div>
-        <input type="url" class="block-url-input input" placeholder="https://res.cloudinary.com/dgzlcqdcc/image/upload/w_800,f_auto/\u2026" value="${block.value}" data-idx="${i}">
+        <div class="block-item__label">Foto (volledig breed)</div>
+        <input type="url" class="block-url-input input" placeholder="https://res.cloudinary.com/dgzlcqdcc/image/upload/w_800,f_auto/\u2026" value="${block.value || ""}" data-idx="${i}">
         <div class="block-photo-preview" data-idx="${i}">
           ${block.value ? `<img src="${block.value}" alt="Foto preview" class="block-photo-preview__img" onerror="this.parentElement.hidden=true">` : ""}
         </div>
+      `;
+    } else if (block.type === "photo-grid") {
+      const cols = block.cols || 2;
+      const photos = block.photos || ["", ""];
+      const photosHtml = photos.map((url, pi) => `
+        <div class="photo-grid-entry">
+          <input type="url" class="block-url-input input block-grid-url" placeholder="Cloudinary URL \u2026" value="${url}" data-idx="${i}" data-pi="${pi}">
+          ${url ? `<img src="${url}" alt="" class="block-photo-preview__img" style="margin-top:4px;" onerror="this.remove()">` : ""}
+        </div>
+      `).join("");
+      bodyHtml = `
+        <div class="block-item__label">Foto grid</div>
+        <div class="block-grid-controls">
+          <span style="font-size:var(--text-xs);color:var(--color-charcoal-soft);">Kolommen:</span>
+          <label class="block-grid-col-opt"><input type="radio" name="grid-cols-${i}" value="2" ${cols === 2 ? "checked" : ""} data-idx="${i}"> 2</label>
+          <label class="block-grid-col-opt"><input type="radio" name="grid-cols-${i}" value="3" ${cols === 3 ? "checked" : ""} data-idx="${i}"> 3</label>
+        </div>
+        <div class="photo-grid-inputs" data-idx="${i}" style="display:grid;grid-template-columns:repeat(${cols},1fr);gap:6px;">${photosHtml}</div>
+        <button class="link-btn link-btn--small block-grid-add-photo" data-idx="${i}" style="margin-top:6px;">+ Foto toevoegen</button>
+      `;
+    } else if (block.type === "link") {
+      bodyHtml = `
+        <div class="block-item__label">Link</div>
+        <input type="text" class="block-link-name input" placeholder="Naam (bv. Route op AllTrails)" value="${block.name || ""}" data-idx="${i}" style="margin-bottom:6px;">
+        <input type="url" class="block-link-url input" placeholder="https://\u2026" value="${block.url || ""}" data-idx="${i}">
       `;
     }
 
@@ -279,7 +315,7 @@ function renderBlockEditor() {
     });
   });
 
-  els.blockList.querySelectorAll(".block-url-input").forEach((inp) => {
+  els.blockList.querySelectorAll(".block-url-input:not(.block-grid-url)").forEach((inp) => {
     inp.addEventListener("blur", (e) => {
       const idx = parseInt(e.target.dataset.idx);
       const fixed = fixCloudinaryUrl(e.target.value.trim(), "w_800,f_auto");
@@ -292,7 +328,6 @@ function renderBlockEditor() {
     inp.addEventListener("input", (e) => {
       const idx = parseInt(e.target.dataset.idx);
       state.storyBlocks[idx].value = e.target.value;
-      // Foto preview bijwerken
       const preview = els.blockList.querySelector(`.block-photo-preview[data-idx="${idx}"]`);
       if (preview) {
         const url = e.target.value.trim();
@@ -304,6 +339,58 @@ function renderBlockEditor() {
           preview.innerHTML = "";
         }
       }
+      updatePreview();
+    });
+  });
+
+  // Photo grid events
+  els.blockList.querySelectorAll(".block-grid-url").forEach((inp) => {
+    inp.addEventListener("blur", (e) => {
+      const idx = parseInt(e.target.dataset.idx);
+      const pi = parseInt(e.target.dataset.pi);
+      const fixed = fixCloudinaryUrl(e.target.value.trim(), "w_800,f_auto");
+      e.target.value = fixed;
+      state.storyBlocks[idx].photos[pi] = fixed;
+      updatePreview();
+    });
+    inp.addEventListener("input", (e) => {
+      const idx = parseInt(e.target.dataset.idx);
+      const pi = parseInt(e.target.dataset.pi);
+      state.storyBlocks[idx].photos[pi] = e.target.value;
+      updatePreview();
+    });
+  });
+
+  els.blockList.querySelectorAll(".block-grid-col-opt input").forEach((radio) => {
+    radio.addEventListener("change", (e) => {
+      const idx = parseInt(e.target.dataset.idx);
+      state.storyBlocks[idx].cols = parseInt(e.target.value);
+      renderBlockEditor();
+      updatePreview();
+    });
+  });
+
+  els.blockList.querySelectorAll(".block-grid-add-photo").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      const idx = parseInt(e.target.dataset.idx);
+      state.storyBlocks[idx].photos.push("");
+      renderBlockEditor();
+    });
+  });
+
+  // Link events
+  els.blockList.querySelectorAll(".block-link-name").forEach((inp) => {
+    inp.addEventListener("input", (e) => {
+      const idx = parseInt(e.target.dataset.idx);
+      state.storyBlocks[idx].name = e.target.value;
+      updatePreview();
+    });
+  });
+
+  els.blockList.querySelectorAll(".block-link-url").forEach((inp) => {
+    inp.addEventListener("input", (e) => {
+      const idx = parseInt(e.target.dataset.idx);
+      state.storyBlocks[idx].url = e.target.value;
       updatePreview();
     });
   });
@@ -329,18 +416,64 @@ els.btnAddTextBlock.addEventListener("click", () => {
   state.storyBlocks.push({ type: "text", value: "" });
   renderBlockEditor();
   updatePreview();
-  // Scroll naar nieuw blok
-  const items = els.blockList.querySelectorAll(".block-item");
-  if (items.length) items[items.length - 1].scrollIntoView({ behavior: "smooth", block: "nearest" });
 });
 
 els.btnAddPhotoBlock.addEventListener("click", () => {
   state.storyBlocks.push({ type: "photo", value: "" });
   renderBlockEditor();
   updatePreview();
-  const items = els.blockList.querySelectorAll(".block-item");
-  if (items.length) items[items.length - 1].scrollIntoView({ behavior: "smooth", block: "nearest" });
 });
+
+els.btnAddPhotoGridBlock.addEventListener("click", () => {
+  state.storyBlocks.push({ type: "photo-grid", cols: 2, photos: ["", ""] });
+  renderBlockEditor();
+  updatePreview();
+});
+
+els.btnAddLinkBlock.addEventListener("click", () => {
+  state.storyBlocks.push({ type: "link", name: "", url: "" });
+  renderBlockEditor();
+  updatePreview();
+});
+
+// -----------------------------------------------------------
+// GALERIJ ONDERAAN
+// -----------------------------------------------------------
+function renderGallery() {
+  if (!els.galleryList) return;
+  els.galleryList.innerHTML = "";
+  state.galleryPhotos.forEach((photo, i) => {
+    const entry = document.createElement("div");
+    entry.className = "photo-entry";
+    entry.innerHTML = `
+      <input type="url" class="input gallery-url-input" placeholder="https://res.cloudinary.com/dgzlcqdcc/image/upload/w_800,f_auto/\u2026" value="${photo.url || ""}" data-idx="${i}">
+      <button class="photo-entry__remove" data-idx="${i}" title="Verwijder">✕</button>
+    `;
+    entry.querySelector(".gallery-url-input").addEventListener("blur", (e) => {
+      const fixed = fixCloudinaryUrl(e.target.value.trim(), "w_800,f_auto");
+      e.target.value = fixed;
+      state.galleryPhotos[i].url = fixed;
+      updatePreview();
+    });
+    entry.querySelector(".gallery-url-input").addEventListener("input", (e) => {
+      state.galleryPhotos[i].url = e.target.value;
+      updatePreview();
+    });
+    entry.querySelector(".photo-entry__remove").addEventListener("click", () => {
+      state.galleryPhotos.splice(i, 1);
+      renderGallery();
+      updatePreview();
+    });
+    els.galleryList.appendChild(entry);
+  });
+}
+
+if (els.btnAddGalleryPhoto) {
+  els.btnAddGalleryPhoto.addEventListener("click", () => {
+    state.galleryPhotos.push({ url: "" });
+    renderGallery();
+  });
+}
 
 // -----------------------------------------------------------
 // GPX DROP ZONE
@@ -826,7 +959,14 @@ function buildRouteJson() {
     tags: els.inputKeywords.value.split(",").map((k) => k.trim()).filter(Boolean),
     summary: { nl: els.inputIntro.value.trim(), en: "" },
     story: { nl: storyText, en: "" },
-    story_blocks: state.storyBlocks.filter((b) => b.value.trim()).map((b) => ({ type: b.type, value: b.value.trim() })),
+    story_blocks: state.storyBlocks.filter((b) => b.type === "text" ? b.value.trim() : true).map((b) => {
+      if (b.type === "text") return { type: b.type, value: b.value.trim() };
+      if (b.type === "photo") return { type: b.type, value: b.value.trim() };
+      if (b.type === "photo-grid") return { type: b.type, cols: b.cols, photos: b.photos.filter(Boolean) };
+      if (b.type === "link") return { type: b.type, name: b.name.trim(), url: b.url.trim() };
+      return b;
+    }),
+    gallery: state.galleryPhotos.filter((p) => p.url).map((p) => ({ url: p.url })),
     tips: { nl: els.inputTips.value.trim(), en: "" },
     photos: allPhotos,
     gpx_stats: state.gpx ? {
