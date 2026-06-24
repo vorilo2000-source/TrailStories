@@ -280,6 +280,15 @@ function renderBlockEditor() {
   });
 
   els.blockList.querySelectorAll(".block-url-input").forEach((inp) => {
+    inp.addEventListener("blur", (e) => {
+      const idx = parseInt(e.target.dataset.idx);
+      const fixed = fixCloudinaryUrl(e.target.value.trim(), "w_800,f_auto");
+      if (fixed !== e.target.value.trim()) {
+        e.target.value = fixed;
+        state.storyBlocks[idx].value = fixed;
+      }
+      updatePreview();
+    });
     inp.addEventListener("input", (e) => {
       const idx = parseInt(e.target.dataset.idx);
       state.storyBlocks[idx].value = e.target.value;
@@ -631,7 +640,29 @@ function applyCalculatedDifficulty() {
 }
 
 // -----------------------------------------------------------
-// KARAKTER TELLER INTRO
+// CLOUDINARY URL AUTO-FIX
+// Voegt automatisch w_1200,f_auto toe aan hero-foto URL
+// en w_800,f_auto aan foto-blok URLs
+// -----------------------------------------------------------
+function fixCloudinaryUrl(url, transform = "w_1200,f_auto") {
+  if (!url) return url;
+  if (!url.includes("res.cloudinary.com")) return url;
+  if (url.includes(transform)) return url;
+  // Transformatie invoegen na /upload/
+  return url.replace("/upload/", `/upload/${transform}/`);
+}
+
+els.inputHeroPhoto.addEventListener("blur", () => {
+  const fixed = fixCloudinaryUrl(els.inputHeroPhoto.value.trim());
+  if (fixed !== els.inputHeroPhoto.value.trim()) {
+    els.inputHeroPhoto.value = fixed;
+  }
+  updatePreview();
+});
+
+els.inputHeroPhoto.addEventListener("input", () => {
+  updatePreview();
+});
 // -----------------------------------------------------------
 els.inputIntro.addEventListener("input", () => {
   els.introCount.textContent = `${els.inputIntro.value.length}/160`;
