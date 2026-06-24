@@ -1,456 +1,992 @@
-<!-- ======================= creator.html v2.0.0 =======================
-     Route creator pagina — MyTrailWalks
-     Bouwt stap voor stap een route-JSON op en exporteert deze.
+// =======================================================
+// creator.js — MyTrailWalks
+// Route creator: GPX parse, weer, locatie, AI, JSON export
+// v2.0.0: visuele preview, blokken-editor, JSON import
+// v1.2.0: geen eigen i18n init (app.js doet dit centraal)
+// =======================================================
+"use strict";
 
-     Stappen:
-       1. GPX uploaden → automatisch berekende stats (Haversine)
-       2. Datum + locatie (auto via Nominatim) + weerdata (Open-Meteo)
-       3. Route-informatie (titel, moeilijkheid, regio, bron)
-       4. Foto's (hero + extra Cloudinary URLs)
-       5. Verhaal & tips — blokken-editor (tekst + foto blokken, vrije volgorde)
-       6. Export → downloadt [id].json
+// -----------------------------------------------------------
+// STATE
+// -----------------------------------------------------------
+const state = {
+  aiMode: false,
+  apiKey: null,
+  apiKeyConfirmed: false,
+  gpx: null,
+  weather: null,
+  storyBlocks: [], // [{ type: 'text'|'photo', value: string }]
+};
 
-     Modi:
-       - Handmatig: geen AI, alles zelf invullen
-       - AI-assisted: Anthropic API genereert verhaal/samenvatting/tips
+// -----------------------------------------------------------
+// DOM REFS
+// -----------------------------------------------------------
+const $ = (id) => document.getElementById(id);
 
-     Toegang:
-       - Pagina enkel bereikbaar via admin dropdown in topbar na inlog
+const els = {
+  btnModeToggle: $("btn-mode-toggle"),
+  modeLabel: $("mode-label"),
+  apiKeyBar: $("api-key-bar"),
+  inputApiKey: $("input-api-key"),
+  btnKeyConfirm: $("btn-key-confirm"),
+  aiActions: $("ai-actions"),
+  aiStoryHint: $("ai-story-hint"),
+  btnAiGenerate: $("btn-ai-generate"),
+  gpxDropZone: $("gpx-drop-zone"),
+  gpxFileInput: $("gpx-file-input"),
+  gpxBrowseBtn: $("gpx-browse-btn"),
+  gpxStats: $("gpx-stats"),
+  gpxResetBtn: $("gpx-reset-btn"),
+  gpxStatus: $("gpx-status"),
+  statDistance: $("stat-distance"),
+  statDuration: $("stat-duration"),
+  statEleUp: $("stat-ele-up"),
+  statEleDown: $("stat-ele-down"),
+  statHighest: $("stat-highest"),
+  statLowest: $("stat-lowest"),
+  statAvgSpeed: $("stat-avg-speed"),
+  statMaxSpeed: $("stat-max-speed"),
+  inputDate: $("input-date"),
+  inputLocation: $("input-location"),
+  btnFetchLocation: $("btn-fetch-location"),
+  btnFetchWeather: $("btn-fetch-weather"),
+  btnRefetchWeather: $("btn-refetch-weather"),
+  weatherBlock: $("weather-block"),
+  wTempMin: $("w-temp-min"),
+  wTempMax: $("w-temp-max"),
+  wPrecip: $("w-precip"),
+  wWind: $("w-wind"),
+  inputWeatherCondition: $("input-weather-condition"),
+  weatherBlock: $("weather-block"),
+  inputTitle: $("input-title"),
+  inputDifficulty: $("input-difficulty"),
+  inputRegion: $("input-region"),
+  inputSource: $("input-source"),
+  inputHeroPhoto: $("input-hero-photo"),
+  inputKeywords: $("input-keywords"),
+  inputIntro: $("input-intro"),
+  introCount: $("intro-count"),
+  inputTips: $("input-tips"),
+  inputRouteId: $("input-route-id"),
+  inputStatus: $("input-status"),
+  btnExport: $("btn-export"),
+  jsonImportInput: $("json-import-input"),
+  blockList: $("block-list"),
+  btnAddTextBlock: $("btn-add-text-block"),
+  btnAddPhotoBlock: $("btn-add-photo-block"),
+};
 
-     Scripts: alle scripts onderaan <body> — standaard MyTrailWalks volgorde:
-       Eruda → Supabase SDK → i18next → i18n.js → auth.js → topbar-auth.js → app.js → creator.js
+// -----------------------------------------------------------
+// AI MODUS TOGGLE
+// -----------------------------------------------------------
+els.btnModeToggle.addEventListener("click", () => {
+  state.aiMode = !state.aiMode;
+  els.modeLabel.textContent = state.aiMode ? "AI-modus uitschakelen" : "AI-modus inschakelen";
+  els.apiKeyBar.hidden = !state.aiMode;
+  els.aiActions.hidden = !state.aiMode;
+  els.aiStoryHint.hidden = !state.aiMode;
+  els.btnModeToggle.classList.toggle("btn--ai", state.aiMode);
+  updatePreview();
+});
 
-     v2.0.0: visuele preview, blokken-editor, JSON upload/import
-     v1.0.1: scripts verplaatst naar onderaan <body> conform standaard
-     v1.0.0: initiële versie
-     ======================================================================= -->
-<!DOCTYPE html>
-<html lang="nl">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Route creator — MyTrailWalks</title>
+els.btnKeyConfirm.addEventListener("click", () => {
+  const key = els.inputApiKey.value.trim();
+  if (!key.startsWith("sk-ant-")) {
+    showInlineError(els.inputApiKey, "Sleutel moet beginnen met sk-ant-");
+    return;
+  }
+  state.apiKey = key;
+  state.apiKeyConfirmed = true;
+  els.inputApiKey.value = "\u2022".repeat(20);
+  els.btnKeyConfirm.textContent = "\u2713 Bevestigd";
+  els.btnKeyConfirm.disabled = true;
+});
 
-  <!-- Favicon -->
-  <link rel="icon" type="image/x-icon" href="assets/images/favicon.ico">
-  <link rel="icon" type="image/png" sizes="32x32" href="assets/images/favicon-32x32.png">
-  <link rel="apple-touch-icon" sizes="180x180" href="assets/images/favicon-180x180.png">
-  <link rel="icon" type="image/png" sizes="192x192" href="assets/images/favicon-192x192.png">
+// -----------------------------------------------------------
+// JSON IMPORT
+// -----------------------------------------------------------
+els.jsonImportInput.addEventListener("change", () => {
+  const file = els.jsonImportInput.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const data = JSON.parse(e.target.result);
+      loadJsonIntoForm(data);
+    } catch (err) {
+      alert("Ongeldig JSON-bestand. Controleer het bestand en probeer opnieuw.");
+      console.error("JSON import fout:", err);
+    }
+  };
+  reader.readAsText(file);
+  // Reset input zodat hetzelfde bestand opnieuw geladen kan worden
+  els.jsonImportInput.value = "";
+});
 
-  <!-- CSS -->
-  <link rel="stylesheet" href="css/main.css">
-  <link rel="stylesheet" href="css/topbar.css">
-  <link rel="stylesheet" href="css/footer.css">
-  <link rel="stylesheet" href="css/creator.css">
-  <!-- Leaflet kaart -->
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.min.css" crossorigin=""/>
-</head>
-<body>
+function loadJsonIntoForm(data) {
+  // Route ID & status
+  if (data.id) els.inputRouteId.value = data.id;
+  if (data.status) els.inputStatus.value = data.status;
 
-  <!-- Eruda debugger — niet verwijderen -->
-  <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
-  <script>eruda.init();</script>
+  // Datum & locatie
+  if (data.published_date) els.inputDate.value = data.published_date;
+  if (data.location) els.inputLocation.value = data.location;
+  if (data.region) els.inputRegion.value = data.region;
 
-  <!-- Topbar -->
-  <div id="topbar-placeholder" aria-hidden="true"></div>
+  // Route info
+  if (data.title?.nl) els.inputTitle.value = data.title.nl;
+  if (data.difficulty) els.inputDifficulty.value = data.difficulty;
+  if (data.source_reference) els.inputSource.value = data.source_reference;
 
-  <!-- Main -->
-  <main id="main-content" class="creator-layout">
+  // Vervoersmiddel
+  if (data.transport?.length) {
+    document.querySelectorAll("#transport-select input").forEach((cb) => {
+      cb.checked = data.transport.includes(cb.value);
+    });
+  }
 
-    <!-- Header balk -->
-    <header class="creator-header">
-      <div class="creator-header__inner">
-        <div class="creator-header__title">
-          <span class="creator-header__eyebrow">Route creator</span>
-          <h1>Nieuwe wandeling</h1>
+  // Tags / keywords
+  if (data.tags?.length) els.inputKeywords.value = data.tags.join(", ");
+
+  // Samenvatting
+  if (data.summary?.nl) {
+    els.inputIntro.value = data.summary.nl;
+    els.introCount.textContent = `${data.summary.nl.length}/160`;
+  }
+
+  // Tips
+  if (data.tips?.nl) els.inputTips.value = data.tips.nl;
+
+  // Hero foto — automatisch w_1200,f_auto toevoegen als transformatie ontbreekt
+  if (data.photos?.length) {
+    let heroUrl = data.photos[0].url || "";
+    if (heroUrl && heroUrl.includes("res.cloudinary.com") && !heroUrl.includes("w_1200")) {
+      heroUrl = heroUrl.replace("/upload/", "/upload/w_1200,f_auto/");
+    }
+    els.inputHeroPhoto.value = heroUrl;
+  }
+
+  // Verhaal → blokken
+  // Bestaande JSON heeft story als string; we zetten dat om naar één tekstblok
+  // Nieuwe JSON heeft story als blocks array
+  state.storyBlocks = [];
+  if (data.story_blocks?.length) {
+    state.storyBlocks = data.story_blocks.map((b) => ({ type: b.type, value: b.value || "" }));
+  } else if (data.story?.nl) {
+    state.storyBlocks = [{ type: "text", value: data.story.nl }];
+  }
+
+  // Extra foto's (index 1+) als fotoblokken toevoegen indien geen story_blocks
+  if (!data.story_blocks && data.photos?.length > 1) {
+    data.photos.slice(1).forEach((p) => {
+      if (p.url) state.storyBlocks.push({ type: "photo", value: p.url });
+    });
+  }
+
+  // Weerdata
+  if (data.weather) {
+    try {
+      state.weather = { ...data.weather };
+      if (els.wTempMin) els.wTempMin.textContent = data.weather.temperature_min !== null ? `${data.weather.temperature_min}°C` : "—";
+      if (els.wTempMax) els.wTempMax.textContent = data.weather.temperature_max !== null ? `${data.weather.temperature_max}°C` : "—";
+      if (els.wPrecip) els.wPrecip.textContent = data.weather.precipitation_mm !== null ? `${data.weather.precipitation_mm} mm` : "—";
+      if (els.wWind) els.wWind.textContent = data.weather.wind_kmh !== null ? `${data.weather.wind_kmh} km/u` : "—";
+      if (data.weather.condition && els.inputWeatherCondition) els.inputWeatherCondition.value = data.weather.condition;
+      if (els.weatherBlock) els.weatherBlock.hidden = false;
+    } catch (err) {
+      console.warn("Weerdata inladen fout (niet kritiek):", err);
+    }
+  }
+
+  // GPX stats (read-only invullen als er geen GPX geladen wordt)
+  if (data.gpx_stats && !state.gpx) {
+    const g = data.gpx_stats;
+    els.statDistance.textContent = g.distance_km ? `${g.distance_km} km` : "—";
+    els.statDuration.textContent = g.duration_hours ? `${g.duration_hours} u` : "—";
+    els.statEleUp.textContent = g.elevation_up_m ? `+${g.elevation_up_m} m` : "—";
+    els.statEleDown.textContent = g.elevation_down_m ? `-${g.elevation_down_m} m` : "—";
+    els.statHighest.textContent = g.highest_point_m ? `${g.highest_point_m} m` : "—";
+    els.statLowest.textContent = g.lowest_point_m ? `${g.lowest_point_m} m` : "—";
+    els.statAvgSpeed.textContent = g.avg_speed_kmh ? `${g.avg_speed_kmh} km/u` : "—";
+    els.statMaxSpeed.textContent = g.max_speed_kmh ? `${g.max_speed_kmh} km/u` : "—";
+    els.gpxDropZone.hidden = true;
+    els.gpxStats.hidden = false;
+    els.gpxStatus.textContent = "✓ Uit JSON";
+    // Coördinaten overnemen voor kaart
+    state.gpx = {
+      ...g,
+      startLat: g.start_lat || null,
+      startLon: g.start_lon || null,
+    };
+  }
+
+  renderBlockEditor();
+  updatePreview();
+}
+
+// -----------------------------------------------------------
+// BLOKKEN-EDITOR
+// -----------------------------------------------------------
+function renderBlockEditor() {
+  els.blockList.innerHTML = "";
+  state.storyBlocks.forEach((block, i) => {
+    const item = document.createElement("div");
+    item.className = `block-item block-item--${block.type}`;
+    item.dataset.idx = i;
+
+    const isFirst = i === 0;
+    const isLast = i === state.storyBlocks.length - 1;
+
+    let bodyHtml = "";
+    if (block.type === "text") {
+      const escaped = block.value.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+      bodyHtml = `
+        <div class="block-item__label">Tekst</div>
+        <textarea class="block-textarea input input--textarea" rows="4" placeholder="Schrijf een alinea\u2026" data-idx="${i}">${escaped}</textarea>
+      `;
+    } else {
+      bodyHtml = `
+        <div class="block-item__label">Foto — Cloudinary URL</div>
+        <input type="url" class="block-url-input input" placeholder="https://res.cloudinary.com/dgzlcqdcc/image/upload/w_800,f_auto/\u2026" value="${block.value}" data-idx="${i}">
+        <div class="block-photo-preview" data-idx="${i}">
+          ${block.value ? `<img src="${block.value}" alt="Foto preview" class="block-photo-preview__img" onerror="this.parentElement.hidden=true">` : ""}
         </div>
-        <div class="creator-header__actions">
-          <!-- JSON import -->
-          <label class="btn btn--ghost btn--sm" title="Laad een bestaande route JSON om te bewerken" style="cursor:pointer;">
-            <input type="file" id="json-import-input" accept=".json" hidden>
-            JSON laden
-          </label>
-          <button class="btn btn--ghost" id="btn-mode-toggle" title="Schakel tussen handmatig en AI-modus">
-            <span class="btn-icon">✦</span>
-            <span id="mode-label">AI-modus inschakelen</span>
-          </button>
-        </div>
+      `;
+    }
+
+    item.innerHTML = `
+      <div class="block-controls">
+        <button class="block-ctrl-btn" data-action="up" data-idx="${i}" title="Omhoog" ${isFirst ? "disabled" : ""}>↑</button>
+        <button class="block-ctrl-btn" data-action="down" data-idx="${i}" title="Omlaag" ${isLast ? "disabled" : ""}>↓</button>
       </div>
-    </header>
+      <div class="block-body">${bodyHtml}</div>
+      <button class="block-remove-btn" data-action="remove" data-idx="${i}" title="Verwijder blok">✕</button>
+    `;
 
-    <!-- API key balk (verborgen tenzij AI-modus) -->
-    <div class="api-key-bar" id="api-key-bar" hidden>
-      <div class="api-key-bar__inner">
-        <label for="input-api-key" class="api-key-bar__label">
-          Anthropic API-sleutel
-          <span class="api-key-bar__note">Wordt niet opgeslagen — enkel actief tijdens deze sessie</span>
-        </label>
-        <div class="api-key-bar__field">
-          <input type="password" id="input-api-key" class="input input--mono" placeholder="sk-ant-..." autocomplete="off">
-          <button class="btn btn--primary btn--sm" id="btn-key-confirm">Bevestigen</button>
-        </div>
-      </div>
-    </div>
+    els.blockList.appendChild(item);
+  });
 
-    <!-- Werkruimte: formulier + preview naast elkaar -->
-    <div class="creator-workspace">
+  // Events delegeren
+  els.blockList.querySelectorAll("[data-action]").forEach((btn) => {
+    btn.addEventListener("click", handleBlockAction);
+  });
 
-      <!-- LINKER KOLOM: stap-voor-stap formulier -->
-      <div class="creator-form-col">
+  els.blockList.querySelectorAll(".block-textarea").forEach((ta) => {
+    ta.addEventListener("input", (e) => {
+      const idx = parseInt(e.target.dataset.idx);
+      state.storyBlocks[idx].value = e.target.value;
+      updatePreview();
+    });
+  });
 
-        <!-- STAP 1: GPX -->
-        <section class="creator-step" id="step-gpx">
-          <div class="creator-step__header">
-            <span class="creator-step__num">1</span>
-            <h2 class="creator-step__title">GPX-bestand</h2>
-            <span class="creator-step__status" id="gpx-status"></span>
-          </div>
-          <div class="creator-step__body">
-            <div class="drop-zone" id="gpx-drop-zone">
-              <input type="file" id="gpx-file-input" accept=".gpx" hidden>
-              <div class="drop-zone__inner" id="gpx-drop-inner">
-                <span class="drop-zone__icon">↑</span>
-                <p class="drop-zone__text">Sleep je GPX-bestand hierheen</p>
-                <p class="drop-zone__sub">of <button class="link-btn" id="gpx-browse-btn">kies een bestand</button></p>
-              </div>
-            </div>
-            <div class="gpx-stats" id="gpx-stats" hidden>
-              <div class="stat-grid">
-                <div class="stat-item">
-                  <span class="stat-value" id="stat-distance">—</span>
-                  <span class="stat-label">Afstand</span>
-                </div>
-                <div class="stat-item">
-                  <span class="stat-value" id="stat-duration">—</span>
-                  <span class="stat-label">Duur</span>
-                </div>
-                <div class="stat-item">
-                  <span class="stat-value" id="stat-ele-up">—</span>
-                  <span class="stat-label">Stijging</span>
-                </div>
-                <div class="stat-item">
-                  <span class="stat-value" id="stat-ele-down">—</span>
-                  <span class="stat-label">Daling</span>
-                </div>
-                <div class="stat-item">
-                  <span class="stat-value" id="stat-highest">—</span>
-                  <span class="stat-label">Hoogste punt</span>
-                </div>
-                <div class="stat-item">
-                  <span class="stat-value" id="stat-lowest">—</span>
-                  <span class="stat-label">Laagste punt</span>
-                </div>
-                <div class="stat-item">
-                  <span class="stat-value" id="stat-avg-speed">—</span>
-                  <span class="stat-label">Gem. snelheid</span>
-                </div>
-                <div class="stat-item">
-                  <span class="stat-value" id="stat-max-speed">—</span>
-                  <span class="stat-label">Max. snelheid</span>
-                </div>
-              </div>
-              <button class="link-btn link-btn--small" id="gpx-reset-btn">Ander bestand kiezen</button>
-            </div>
-          </div>
-        </section>
+  els.blockList.querySelectorAll(".block-url-input").forEach((inp) => {
+    inp.addEventListener("input", (e) => {
+      const idx = parseInt(e.target.dataset.idx);
+      state.storyBlocks[idx].value = e.target.value;
+      // Foto preview bijwerken
+      const preview = els.blockList.querySelector(`.block-photo-preview[data-idx="${idx}"]`);
+      if (preview) {
+        const url = e.target.value.trim();
+        if (url) {
+          preview.hidden = false;
+          preview.innerHTML = `<img src="${url}" alt="Foto preview" class="block-photo-preview__img" onerror="this.parentElement.hidden=true">`;
+        } else {
+          preview.hidden = true;
+          preview.innerHTML = "";
+        }
+      }
+      updatePreview();
+    });
+  });
+}
 
-        <hr class="step-divider">
+function handleBlockAction(e) {
+  const action = e.currentTarget.dataset.action;
+  const idx = parseInt(e.currentTarget.dataset.idx);
 
-        <!-- STAP 2: Datum + locatie + weer -->
-        <section class="creator-step" id="step-meta">
-          <div class="creator-step__header">
-            <span class="creator-step__num">2</span>
-            <h2 class="creator-step__title">Datum &amp; locatie</h2>
-          </div>
-          <div class="creator-step__body">
-            <div class="field-row">
-              <div class="field">
-                <label class="field__label" for="input-date">Wandeldatum</label>
-                <input type="date" id="input-date" class="input">
-              </div>
-              <div class="field field--grow">
-                <label class="field__label" for="input-location">Locatie</label>
-                <div class="input-with-action">
-                  <input type="text" id="input-location" class="input" placeholder="Automatisch via GPX of handmatig">
-                  <button class="btn btn--ghost btn--sm" id="btn-fetch-location" title="Locatie ophalen via GPX-coördinaten">↺</button>
-                </div>
-              </div>
-            </div>
-            <div class="field">
-              <label class="field__label">Vervoersmiddel</label>
-              <div class="transport-select" id="transport-select">
-                <label class="transport-option"><input type="checkbox" value="walking"> 🚶 Wandelen</label>
-                <label class="transport-option"><input type="checkbox" value="cycling"> 🚴 Fietsen</label>
-                <label class="transport-option"><input type="checkbox" value="motorcycle"> 🏍 Motor</label>
-                <label class="transport-option"><input type="checkbox" value="car"> 🚗 Auto</label>
-                <label class="transport-option"><input type="checkbox" value="train"> 🚆 Trein</label>
-                <label class="transport-option"><input type="checkbox" value="bus"> 🚌 Bus</label>
-              </div>
-              <span class="field__help">Meerdere opties mogelijk</span>
-            </div>
-            <div class="weather-block" id="weather-block" hidden>
-              <div class="weather-block__header">
-                <span class="weather-block__label">Weerdata — Open-Meteo</span>
-                <button class="link-btn link-btn--small" id="btn-refetch-weather">Opnieuw ophalen</button>
-              </div>
-              <div class="weather-grid">
-                <div class="weather-item">
-                  <span class="stat-value" id="w-temp-min">—</span>
-                  <span class="stat-label">Min. temp</span>
-                </div>
-                <div class="weather-item">
-                  <span class="stat-value" id="w-temp-max">—</span>
-                  <span class="stat-label">Max. temp</span>
-                </div>
-                <div class="weather-item">
-                  <span class="stat-value" id="w-precip">—</span>
-                  <span class="stat-label">Neerslag</span>
-                </div>
-                <div class="weather-item">
-                  <span class="stat-value" id="w-wind">—</span>
-                  <span class="stat-label">Wind</span>
-                </div>
-              </div>
-              <div class="field field--inline">
-                <label class="field__label" for="input-weather-condition">Omschrijving</label>
-                <input type="text" id="input-weather-condition" class="input" placeholder="zonnig, bewolkt, regenachtig…">
-              </div>
-            </div>
-            <button class="btn btn--secondary btn--sm" id="btn-fetch-weather">Weerdata ophalen</button>
-          </div>
-        </section>
+  if (action === "up" && idx > 0) {
+    [state.storyBlocks[idx - 1], state.storyBlocks[idx]] = [state.storyBlocks[idx], state.storyBlocks[idx - 1]];
+  } else if (action === "down" && idx < state.storyBlocks.length - 1) {
+    [state.storyBlocks[idx], state.storyBlocks[idx + 1]] = [state.storyBlocks[idx + 1], state.storyBlocks[idx]];
+  } else if (action === "remove") {
+    state.storyBlocks.splice(idx, 1);
+  }
 
-        <hr class="step-divider">
+  renderBlockEditor();
+  updatePreview();
+}
 
-        <!-- STAP 3: Route info -->
-        <section class="creator-step" id="step-info">
-          <div class="creator-step__header">
-            <span class="creator-step__num">3</span>
-            <h2 class="creator-step__title">Route-informatie</h2>
-          </div>
-          <div class="creator-step__body">
-            <div class="field">
-              <label class="field__label" for="input-title">Titel</label>
-              <input type="text" id="input-title" class="input" placeholder="bv. Ninglinspo in de vroege ochtend">
-            </div>
-            <div class="field-row">
-              <div class="field">
-                <label class="field__label" for="input-difficulty">Moeilijkheid</label>
-                <select id="input-difficulty" class="input">
-                  <option value="">— Kies —</option>
-                  <option value="easy">Gemakkelijk</option>
-                  <option value="medium">Gemiddeld</option>
-                  <option value="hard">Zwaar</option>
-                </select>
-                <span class="field__help">Automatisch berekend na GPX + weerdata. Aanpasbaar.</span>
-              </div>
-              <div class="field field--grow">
-                <label class="field__label" for="input-region">Regio</label>
-                <input type="text" id="input-region" class="input" placeholder="bv. Ardennen">
-              </div>
-            </div>
-            <div class="field">
-              <label class="field__label" for="input-source">Bronvermelding (optioneel)</label>
-              <input type="url" id="input-source" class="input" placeholder="https://www.alltrails.com/…">
-            </div>
-          </div>
-        </section>
+els.btnAddTextBlock.addEventListener("click", () => {
+  state.storyBlocks.push({ type: "text", value: "" });
+  renderBlockEditor();
+  updatePreview();
+  // Scroll naar nieuw blok
+  const items = els.blockList.querySelectorAll(".block-item");
+  if (items.length) items[items.length - 1].scrollIntoView({ behavior: "smooth", block: "nearest" });
+});
 
-        <hr class="step-divider">
+els.btnAddPhotoBlock.addEventListener("click", () => {
+  state.storyBlocks.push({ type: "photo", value: "" });
+  renderBlockEditor();
+  updatePreview();
+  const items = els.blockList.querySelectorAll(".block-item");
+  if (items.length) items[items.length - 1].scrollIntoView({ behavior: "smooth", block: "nearest" });
+});
 
-        <!-- STAP 4: Foto's -->
-        <section class="creator-step" id="step-photos">
-          <div class="creator-step__header">
-            <span class="creator-step__num">4</span>
-            <h2 class="creator-step__title">Hero-foto</h2>
-            <span class="creator-step__hint">Cloudinary URL</span>
-          </div>
-          <div class="creator-step__body">
-            <div class="field">
-              <label class="field__label" for="input-hero-photo">Hero-foto URL</label>
-              <input type="url" id="input-hero-photo" class="input" placeholder="https://res.cloudinary.com/dgzlcqdcc/image/upload/w_1200,f_auto/…">
-              <span class="field__help">Gebruik w_1200,f_auto voor de hero-foto</span>
-            </div>
-          </div>
-        </section>
+// -----------------------------------------------------------
+// GPX DROP ZONE
+// -----------------------------------------------------------
+els.gpxDropZone.addEventListener("click", () => els.gpxFileInput.click());
+els.gpxBrowseBtn.addEventListener("click", (e) => {
+  e.stopPropagation();
+  els.gpxFileInput.click();
+});
 
-        <hr class="step-divider">
+els.gpxDropZone.addEventListener("dragover", (e) => {
+  e.preventDefault();
+  els.gpxDropZone.classList.add("drop-zone--active");
+});
 
-        <!-- STAP 5: Verhaal & tips — blokken-editor -->
-        <section class="creator-step" id="step-story">
-          <div class="creator-step__header">
-            <span class="creator-step__num">5</span>
-            <h2 class="creator-step__title">Verhaal &amp; tips</h2>
-            <span class="creator-step__hint ai-hint" id="ai-story-hint" hidden>AI kan dit genereren</span>
-          </div>
-          <div class="creator-step__body">
+els.gpxDropZone.addEventListener("dragleave", () => {
+  els.gpxDropZone.classList.remove("drop-zone--active");
+});
 
-            <div class="field">
-              <label class="field__label" for="input-keywords">Steekwoorden / ervaringen</label>
-              <input type="text" id="input-keywords" class="input" placeholder="bv. waterval, mist, stilte, modderig pad">
-              <span class="field__help">Komma-gescheiden. Gebruikt als input voor AI of als tags.</span>
-            </div>
+els.gpxDropZone.addEventListener("drop", (e) => {
+  e.preventDefault();
+  els.gpxDropZone.classList.remove("drop-zone--active");
+  const file = e.dataTransfer.files[0];
+  if (file) handleGpxFile(file);
+});
 
-            <div class="field">
-              <label class="field__label" for="input-intro">Korte samenvatting <span class="field__char-count" id="intro-count">0/160</span></label>
-              <textarea id="input-intro" class="input input--textarea" rows="3" maxlength="160" placeholder="Eén zin die de wandeling samenvat voor de grid-weergave…"></textarea>
-            </div>
+els.gpxFileInput.addEventListener("change", () => {
+  const file = els.gpxFileInput.files[0];
+  if (file) handleGpxFile(file);
+});
 
-            <!-- Blokken-editor voor verhaal -->
-            <div class="field">
-              <label class="field__label">Verhaal</label>
-              <span class="field__help" style="display:block; margin-bottom: 8px;">Voeg tekst- en fotoblokken toe in de volgorde die je wilt.</span>
-              <div class="block-editor">
-                <div class="block-list" id="block-list"></div>
-                <div class="block-add-bar">
-                  <button class="btn btn--ghost btn--sm" id="btn-add-text-block">+ Tekstblok</button>
-                  <button class="btn btn--ghost btn--sm" id="btn-add-photo-block">+ Fotoblok</button>
-                </div>
-              </div>
-            </div>
+els.gpxResetBtn.addEventListener("click", () => {
+  state.gpx = null;
+  els.gpxStats.hidden = true;
+  els.gpxDropZone.hidden = false;
+  els.gpxStatus.textContent = "";
+  els.gpxFileInput.value = "";
+  updatePreview();
+});
 
-            <div class="field">
-              <label class="field__label" for="input-tips">Tips</label>
-              <textarea id="input-tips" class="input input--textarea" rows="4" placeholder="Praktische tips voor wandelaars…"></textarea>
-            </div>
+function handleGpxFile(file) {
+  if (!file.name.endsWith(".gpx")) {
+    alert("Enkel .gpx bestanden worden ondersteund.");
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const gpxData = parseGpx(e.target.result);
+    if (!gpxData) {
+      alert("GPX-bestand kon niet worden gelezen. Controleer het bestand.");
+      return;
+    }
+    state.gpx = gpxData;
+    displayGpxStats(gpxData);
+    if (!els.inputDate.value && gpxData.date) {
+      els.inputDate.value = gpxData.date;
+    }
+    if (gpxData.startLat && gpxData.startLon) {
+      fetchLocationName(gpxData.startLat, gpxData.startLon);
+    }
+    applyCalculatedDifficulty();
+    updatePreview();
+  };
+  reader.readAsText(file);
+}
 
-            <div class="ai-actions" id="ai-actions" hidden>
-              <button class="btn btn--ai" id="btn-ai-generate">
-                <span class="btn-icon">✦</span>
-                Genereer met AI
-              </button>
-              <span class="ai-actions__note">Vult verhaal, samenvatting en tips in op basis van jouw gegevens</span>
-            </div>
-          </div>
-        </section>
+// -----------------------------------------------------------
+// GPX PARSER
+// -----------------------------------------------------------
+function parseGpx(xmlText) {
+  try {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(xmlText, "application/xml");
+    const trkpts = Array.from(doc.querySelectorAll("trkpt"));
+    if (trkpts.length < 2) return null;
 
-        <hr class="step-divider">
+    let totalDistance = 0;
+    let elevationUp = 0;
+    let elevationDown = 0;
+    let highestPoint = -Infinity;
+    let lowestPoint = Infinity;
+    let maxSpeed = 0;
+    const speeds = [];
+    let startTime = null;
+    let endTime = null;
 
-        <!-- STAP 6: Export -->
-        <section class="creator-step" id="step-export">
-          <div class="creator-step__header">
-            <span class="creator-step__num">6</span>
-            <h2 class="creator-step__title">Exporteren</h2>
-          </div>
-          <div class="creator-step__body">
-            <div class="field-row">
-              <div class="field">
-                <label class="field__label" for="input-route-id">Route ID (bestandsnaam)</label>
-                <div class="input-with-action">
-                  <input type="text" id="input-route-id" class="input input--mono" placeholder="bv. ninglinspo">
-                  <span class="input-suffix">.json</span>
-                </div>
-                <span class="field__help">Kleine letters, koppelteken i.p.v. spatie</span>
-              </div>
-              <div class="field">
-                <label class="field__label" for="input-status">Status</label>
-                <select id="input-status" class="input">
-                  <option value="draft">Draft</option>
-                  <option value="published">Gepubliceerd</option>
-                </select>
-              </div>
-            </div>
-            <button class="btn btn--primary btn--lg" id="btn-export">JSON downloaden</button>
-          </div>
-        </section>
+    for (let i = 1; i < trkpts.length; i++) {
+      const prev = trkpts[i - 1];
+      const curr = trkpts[i];
+      const lat1 = parseFloat(prev.getAttribute("lat"));
+      const lon1 = parseFloat(prev.getAttribute("lon"));
+      const lat2 = parseFloat(curr.getAttribute("lat"));
+      const lon2 = parseFloat(curr.getAttribute("lon"));
+      const ele1 = parseFloat(prev.querySelector("ele")?.textContent || 0);
+      const ele2 = parseFloat(curr.querySelector("ele")?.textContent || 0);
+      const dist = haversine(lat1, lon1, lat2, lon2);
+      totalDistance += dist;
+      const eleDiff = ele2 - ele1;
+      if (eleDiff > 0) elevationUp += eleDiff;
+      else elevationDown += Math.abs(eleDiff);
+      highestPoint = Math.max(highestPoint, ele1, ele2);
+      lowestPoint = Math.min(lowestPoint, ele1, ele2);
+      const timeEl1 = prev.querySelector("time");
+      const timeEl2 = curr.querySelector("time");
+      if (timeEl1 && timeEl2) {
+        const t1 = new Date(timeEl1.textContent);
+        const t2 = new Date(timeEl2.textContent);
+        if (!startTime) startTime = t1;
+        endTime = t2;
+        const timeDiff = (t2 - t1) / 3600000;
+        if (timeDiff > 0) {
+          const speed = (dist / 1000) / timeDiff;
+          speeds.push(speed);
+          maxSpeed = Math.max(maxSpeed, speed);
+        }
+      }
+    }
 
-      </div><!-- /creator-form-col -->
+    const firstPt = trkpts[0];
+    const startLat = parseFloat(firstPt.getAttribute("lat"));
+    const startLon = parseFloat(firstPt.getAttribute("lon"));
+    const durationHours = startTime && endTime ? ((endTime - startTime) / 3600000) : null;
+    const avgSpeed = speeds.length > 0 ? speeds.reduce((a, b) => a + b, 0) / speeds.length : null;
+    let date = null;
+    const firstTime = trkpts[0].querySelector("time");
+    if (firstTime) date = firstTime.textContent.split("T")[0];
 
-      <!-- RECHTER KOLOM: visuele preview -->
-      <aside class="creator-preview-col">
-        <div class="preview-sticky">
-          <div class="preview-header">
-            <span class="preview-header__label">Voorvertoning</span>
-          </div>
+    // Alle trackpunten opslaan voor routetekening op kaart
+    // Samplen tot max 500 punten voor performantie
+    const step = Math.max(1, Math.floor(trkpts.length / 500));
+    const trackPoints = [];
+    for (let i = 0; i < trkpts.length; i += step) {
+      trackPoints.push([
+        parseFloat(trkpts[i].getAttribute("lat")),
+        parseFloat(trkpts[i].getAttribute("lon")),
+      ]);
+    }
 
-          <!-- Visuele route preview -->
-          <div class="route-preview" id="route-preview">
+    return {
+      distance_km: Math.round(totalDistance / 10) / 100,
+      duration_hours: durationHours ? Math.round(durationHours * 10) / 10 : null,
+      elevation_up_m: Math.round(elevationUp),
+      elevation_down_m: Math.round(elevationDown),
+      highest_point_m: Math.round(highestPoint),
+      lowest_point_m: Math.round(lowestPoint),
+      avg_speed_kmh: avgSpeed ? Math.round(avgSpeed * 10) / 10 : null,
+      max_speed_kmh: Math.round(maxSpeed * 10) / 10,
+      startLat,
+      startLon,
+      trackPoints,
+      date,
+    };
+  } catch (err) {
+    console.error("GPX parse fout:", err);
+    return null;
+  }
+}
 
-            <!-- Hero foto -->
-            <div class="rp-hero" id="rp-hero">
-              <div class="rp-hero__placeholder" id="rp-hero-placeholder">
-                <span class="rp-hero__icon">↑</span>
-                <span class="rp-hero__text">Hero-foto verschijnt hier</span>
-              </div>
-              <img id="rp-hero-img" class="rp-hero__img" src="" alt="" hidden>
-              <div class="rp-status-badge" id="rp-status-badge">draft</div>
-            </div>
+function haversine(lat1, lon1, lat2, lon2) {
+  const R = 6371000;
+  const phi1 = (lat1 * Math.PI) / 180;
+  const phi2 = (lat2 * Math.PI) / 180;
+  const dPhi = ((lat2 - lat1) * Math.PI) / 180;
+  const dLambda = ((lon2 - lon1) * Math.PI) / 180;
+  const a = Math.sin(dPhi / 2) ** 2 + Math.cos(phi1) * Math.cos(phi2) * Math.sin(dLambda / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
 
-            <!-- Info blok -->
-            <div class="rp-body">
-              <p class="rp-location" id="rp-location">Locatie onbekend</p>
-              <h2 class="rp-title" id="rp-title">Wandeling zonder titel</h2>
-              <p class="rp-summary" id="rp-summary"></p>
+function displayGpxStats(gpx) {
+  els.statDistance.textContent = gpx.distance_km ? `${gpx.distance_km} km` : "—";
+  els.statDuration.textContent = gpx.duration_hours ? `${gpx.duration_hours} u` : "—";
+  els.statEleUp.textContent = gpx.elevation_up_m ? `+${gpx.elevation_up_m} m` : "—";
+  els.statEleDown.textContent = gpx.elevation_down_m ? `-${gpx.elevation_down_m} m` : "—";
+  els.statHighest.textContent = gpx.highest_point_m ? `${gpx.highest_point_m} m` : "—";
+  els.statLowest.textContent = gpx.lowest_point_m ? `${gpx.lowest_point_m} m` : "—";
+  els.statAvgSpeed.textContent = gpx.avg_speed_kmh ? `${gpx.avg_speed_kmh} km/u` : "—";
+  els.statMaxSpeed.textContent = gpx.max_speed_kmh ? `${gpx.max_speed_kmh} km/u` : "—";
+  els.gpxDropZone.hidden = true;
+  els.gpxStats.hidden = false;
+  els.gpxStatus.textContent = "\u2713 Geladen";
+}
 
-              <!-- Stats -->
-              <div class="rp-stats" id="rp-stats">
-                <div class="rp-stat">
-                  <span class="rp-stat__value" id="rp-distance">—</span>
-                  <span class="rp-stat__label">afstand</span>
-                </div>
-                <div class="rp-stat">
-                  <span class="rp-stat__value" id="rp-duration">—</span>
-                  <span class="rp-stat__label">duur</span>
-                </div>
-                <div class="rp-stat">
-                  <span class="rp-stat__value" id="rp-elevation">—</span>
-                  <span class="rp-stat__label">stijging</span>
-                </div>
-                <div class="rp-stat">
-                  <span class="rp-stat__value" id="rp-avg-speed">—</span>
-                  <span class="rp-stat__label">gem. snelheid</span>
-                </div>
-                <div class="rp-stat">
-                  <span class="rp-stat__value" id="rp-difficulty">—</span>
-                  <span class="rp-stat__label">moeilijkheid</span>
-                </div>
-              </div>
+// -----------------------------------------------------------
+// LOCATIE VIA NOMINATIM
+// -----------------------------------------------------------
+async function fetchLocationName(lat, lon) {
+  try {
+    els.btnFetchLocation.textContent = "\u2026";
+    const url = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`;
+    const resp = await fetch(url, { headers: { "Accept-Language": "nl" } });
+    const data = await resp.json();
+    const addr = data.address || {};
+    const location = [
+      addr.village || addr.town || addr.city || addr.municipality,
+      addr.county || addr.state_district,
+      addr.country,
+    ].filter(Boolean).join(", ");
+    if (location) els.inputLocation.value = location;
+  } catch (err) {
+    console.warn("Nominatim fout:", err);
+  } finally {
+    els.btnFetchLocation.textContent = "\u21BA";
+    updatePreview();
+  }
+}
 
-              <!-- Weer -->
-              <div class="rp-weather" id="rp-weather" hidden>
-                <div class="rp-weather__item" id="rp-w-temp"></div>
-                <div class="rp-weather__item" id="rp-w-precip"></div>
-                <div class="rp-weather__item" id="rp-w-wind"></div>
-                <div class="rp-weather__item" id="rp-w-date"></div>
-              </div>
+els.btnFetchLocation.addEventListener("click", () => {
+  if (state.gpx?.startLat && state.gpx?.startLon) {
+    fetchLocationName(state.gpx.startLat, state.gpx.startLon);
+  }
+});
 
-              <!-- Verhaal blokken preview -->
-              <div class="rp-story" id="rp-story"></div>
+// -----------------------------------------------------------
+// WEERDATA VIA OPEN-METEO
+// -----------------------------------------------------------
+async function fetchWeather() {
+  const date = els.inputDate.value;
+  const lat = state.gpx?.startLat;
+  const lon = state.gpx?.startLon;
+  if (!date) { alert("Kies eerst een wandeldatum."); return; }
+  if (!lat || !lon) { alert("Laad eerst een GPX-bestand (voor coördinaten)."); return; }
 
-              <!-- Kaart -->
-              <div class="rp-map" id="rp-map" hidden>
-                <p class="rp-map__label">Locatie op kaart</p>
-                <div class="rp-map__frame" id="rp-map-frame"></div>
-              </div>
+  els.btnFetchWeather.textContent = "Ophalen\u2026";
+  els.btnFetchWeather.disabled = true;
 
-            </div><!-- /rp-body -->
-          </div><!-- /route-preview -->
-        </div>
-      </aside>
+  try {
+    const url = `https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lon}&start_date=${date}&end_date=${date}&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,wind_speed_10m_max&timezone=Europe/Brussels`;
+    const resp = await fetch(url);
+    const data = await resp.json();
+    const d = data.daily;
 
-    </div><!-- /creator-workspace -->
+    state.weather = {
+      date,
+      temperature_min: d.temperature_2m_min?.[0] ?? null,
+      temperature_max: d.temperature_2m_max?.[0] ?? null,
+      precipitation_mm: d.precipitation_sum?.[0] ?? null,
+      wind_kmh: d.wind_speed_10m_max?.[0] ?? null,
+      condition: els.inputWeatherCondition.value || "",
+      source: "Open-Meteo",
+    };
 
-  </main>
+    els.wTempMin.textContent = state.weather.temperature_min !== null ? `${state.weather.temperature_min}°C` : "—";
+    els.wTempMax.textContent = state.weather.temperature_max !== null ? `${state.weather.temperature_max}°C` : "—";
+    els.wPrecip.textContent = state.weather.precipitation_mm !== null ? `${state.weather.precipitation_mm} mm` : "—";
+    els.wWind.textContent = state.weather.wind_kmh !== null ? `${state.weather.wind_kmh} km/u` : "—";
+    els.weatherBlock.hidden = false;
+    applyCalculatedDifficulty();
+    updatePreview();
+  } catch (err) {
+    console.error("Weerdata fout:", err);
+    alert("Weerdata kon niet worden opgehaald. Controleer datum en verbinding.");
+  } finally {
+    els.btnFetchWeather.textContent = "Weerdata ophalen";
+    els.btnFetchWeather.disabled = false;
+  }
+}
 
-  <!-- Footer -->
-  <div id="footer-placeholder" aria-hidden="true"></div>
+els.btnFetchWeather.addEventListener("click", fetchWeather);
+els.btnRefetchWeather.addEventListener("click", fetchWeather);
 
-  <!-- Supabase SDK -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+// -----------------------------------------------------------
+// MOEILIJKHEID BEREKENEN
+// -----------------------------------------------------------
+function calculateDifficulty() {
+  const gpx = state.gpx;
+  const weather = state.weather;
+  if (!gpx) return null;
 
-  <!-- i18next CDN -->
-  <script src="https://cdn.jsdelivr.net/npm/i18next@23/i18next.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/i18next-http-backend@2/i18nextHttpBackend.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/i18next-browser-languagedetector@7/i18nextBrowserLanguageDetector.min.js"></script>
+  let score = 0;
 
-  <!-- Scripts: volgorde conform architectuurafspraken -->
-  <script src="js/i18n.js"></script>
-  <script src="js/auth.js"></script>
-  <script src="js/topbar-auth.js"></script>
-  <script src="js/analytics.js"></script>
-  <script src="js/app.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.min.js"></script>
-  <script src="js/creator.js?v=2.1.0"></script>
+  // Afstand: 1 punt per km
+  if (gpx.distance_km) score += gpx.distance_km;
 
-</body>
-</html>
+  // Stijging: 1 punt per 100m
+  if (gpx.elevation_up_m) score += gpx.elevation_up_m / 100;
+
+  // Weer
+  if (weather) {
+    if (weather.temperature_max >= 25) score += 2;
+    if (weather.precipitation_mm >= 5) score += 2;
+    if (weather.wind_kmh >= 30) score += 1;
+  }
+
+  if (score <= 7) return "easy";
+  if (score <= 14) return "medium";
+  return "hard";
+}
+
+function applyCalculatedDifficulty() {
+  const difficulty = calculateDifficulty();
+  if (!difficulty) return;
+  // Alleen invullen als gebruiker nog niets gekozen heeft
+  if (!els.inputDifficulty.value) {
+    els.inputDifficulty.value = difficulty;
+    updatePreview();
+  }
+}
+
+// -----------------------------------------------------------
+// KARAKTER TELLER INTRO
+// -----------------------------------------------------------
+els.inputIntro.addEventListener("input", () => {
+  els.introCount.textContent = `${els.inputIntro.value.length}/160`;
+  updatePreview();
+});
+
+// -----------------------------------------------------------
+// VISUELE PREVIEW
+// -----------------------------------------------------------
+function updatePreview() {
+  const title = els.inputTitle.value.trim();
+  const location = els.inputLocation.value.trim();
+  const summary = els.inputIntro.value.trim();
+  const heroUrl = els.inputHeroPhoto.value.trim();
+  const status = els.inputStatus.value;
+  const difficulty = els.inputDifficulty.value;
+  const gpx = state.gpx;
+  const weather = state.weather;
+
+  // Titel
+  $("rp-title").textContent = title || "Wandeling zonder titel";
+
+  // Locatie
+  $("rp-location").textContent = location || "Locatie onbekend";
+
+  // Samenvatting
+  $("rp-summary").textContent = summary;
+  $("rp-summary").hidden = !summary;
+
+  // Status badge
+  $("rp-status-badge").textContent = status || "draft";
+
+  // Hero foto
+  const heroImg = $("rp-hero-img");
+  const heroPlaceholder = $("rp-hero-placeholder");
+  if (heroUrl) {
+    heroImg.src = heroUrl;
+    heroImg.hidden = false;
+    heroPlaceholder.hidden = true;
+  } else {
+    heroImg.hidden = true;
+    heroPlaceholder.hidden = false;
+  }
+
+  // Stats
+  $("rp-distance").textContent = gpx?.distance_km ? `${gpx.distance_km} km` : "—";
+  $("rp-duration").textContent = gpx?.duration_hours ? `${gpx.duration_hours} u` : "—";
+  $("rp-elevation").textContent = gpx?.elevation_up_m ? `+${gpx.elevation_up_m} m` : "—";
+  $("rp-avg-speed").textContent = gpx?.avg_speed_kmh ? `${gpx.avg_speed_kmh} km/u` : "—";
+
+  const diffLabels = { easy: "Gemakkelijk", medium: "Gemiddeld", hard: "Zwaar" };
+  $("rp-difficulty").textContent = diffLabels[difficulty] || "—";
+
+  // Weer
+  const weatherEl = $("rp-weather");
+  if (weather) {
+    $("rp-w-temp").innerHTML = `<span class="rp-weather__icon">🌡</span> ${weather.temperature_min ?? "—"}° – ${weather.temperature_max ?? "—"}°C`;
+    $("rp-w-precip").innerHTML = `<span class="rp-weather__icon">💧</span> ${weather.precipitation_mm ?? "—"} mm`;
+    $("rp-w-wind").innerHTML = `<span class="rp-weather__icon">🍃</span> ${weather.wind_kmh ?? "—"} km/u`;
+    const dateStr = weather.date ? new Date(weather.date).toLocaleDateString("nl-BE", { day: "numeric", month: "long", year: "numeric" }) : "—";
+    $("rp-w-date").innerHTML = `<span class="rp-weather__icon">📅</span> ${dateStr}`;
+    weatherEl.hidden = false;
+  } else {
+    weatherEl.hidden = true;
+  }
+
+  // Verhaal blokken preview
+  const storyEl = $("rp-story");
+  storyEl.innerHTML = "";
+  state.storyBlocks.forEach((block) => {
+    if (block.type === "text" && block.value.trim()) {
+      const p = document.createElement("p");
+      p.className = "rp-story__text";
+      p.textContent = block.value;
+      storyEl.appendChild(p);
+    } else if (block.type === "photo" && block.value.trim()) {
+      const img = document.createElement("img");
+      img.className = "rp-story__photo";
+      img.src = block.value;
+      img.alt = "";
+      img.onerror = () => img.remove();
+      storyEl.appendChild(img);
+    }
+  });
+
+  // Kaart via Leaflet — toont route als lijn + startmarker
+  const mapEl = $("rp-map");
+  if (gpx?.startLat && gpx?.startLon) {
+    mapEl.hidden = false;
+    const mapFrame = $("rp-map-frame");
+
+    // Container aanmaken als die er nog niet is
+    if (!mapFrame.querySelector("#leaflet-preview-map")) {
+      mapFrame.innerHTML = `<div id="leaflet-preview-map" style="width:100%;height:200px;"></div>`;
+    }
+
+    // setTimeout zodat de DOM de container heeft gerenderd voor Leaflet start
+    setTimeout(() => {
+      if (window.L) {
+        initLeafletMap(gpx);
+      }
+    }, 50);
+  } else {
+    mapEl.hidden = true;
+  }
+}
+
+// Live preview bijwerken bij alle inputs
+document.querySelectorAll(".input").forEach((el) => {
+  el.addEventListener("input", updatePreview);
+  el.addEventListener("change", updatePreview);
+});
+
+// -----------------------------------------------------------
+// JSON EXPORT
+// -----------------------------------------------------------
+function buildRouteJson() {
+  const id = els.inputRouteId.value.trim() || "nieuwe-route";
+
+  // Foto's: hero altijd eerste
+  const allPhotos = [];
+  if (els.inputHeroPhoto.value.trim()) {
+    allPhotos.push({ url: els.inputHeroPhoto.value.trim(), caption: "" });
+  }
+
+  // Verhaal als blokken + tekst samengevoegd voor achterwaartse compatibiliteit
+  const storyText = state.storyBlocks
+    .filter((b) => b.type === "text" && b.value.trim())
+    .map((b) => b.value.trim())
+    .join("\n\n");
+
+  // Foto's uit blokken toevoegen aan photos array
+  state.storyBlocks
+    .filter((b) => b.type === "photo" && b.value.trim())
+    .forEach((b) => allPhotos.push({ url: b.value.trim(), caption: "" }));
+
+  // Vervoersmiddel
+  const transport = Array.from(document.querySelectorAll("#transport-select input:checked")).map((el) => el.value);
+
+  return {
+    id,
+    status: els.inputStatus.value,
+    published_date: els.inputDate.value || null,
+    transport: transport.length ? transport : null,
+    title: { nl: els.inputTitle.value.trim(), en: "" },
+    location: els.inputLocation.value.trim(),
+    region: els.inputRegion.value.trim(),
+    difficulty: els.inputDifficulty.value || null,
+    source_reference: els.inputSource.value.trim() || null,
+    tags: els.inputKeywords.value.split(",").map((k) => k.trim()).filter(Boolean),
+    summary: { nl: els.inputIntro.value.trim(), en: "" },
+    story: { nl: storyText, en: "" },
+    story_blocks: state.storyBlocks.filter((b) => b.value.trim()).map((b) => ({ type: b.type, value: b.value.trim() })),
+    tips: { nl: els.inputTips.value.trim(), en: "" },
+    photos: allPhotos,
+    gpx_stats: state.gpx ? {
+      distance_km: state.gpx.distance_km,
+      duration_hours: state.gpx.duration_hours,
+      elevation_up_m: state.gpx.elevation_up_m,
+      elevation_down_m: state.gpx.elevation_down_m,
+      avg_speed_kmh: state.gpx.avg_speed_kmh,
+      max_speed_kmh: state.gpx.max_speed_kmh,
+      highest_point_m: state.gpx.highest_point_m,
+      lowest_point_m: state.gpx.lowest_point_m,
+      start_lat: state.gpx.startLat || null,
+      start_lon: state.gpx.startLon || null,
+    } : null,
+    weather: state.weather ? {
+      date: state.weather.date,
+      temperature_min: state.weather.temperature_min,
+      temperature_max: state.weather.temperature_max,
+      precipitation_mm: state.weather.precipitation_mm,
+      wind_kmh: state.weather.wind_kmh,
+      condition: els.inputWeatherCondition.value.trim(),
+      source: "Open-Meteo",
+    } : null,
+  };
+}
+
+els.btnExport.addEventListener("click", () => {
+  const id = els.inputRouteId.value.trim();
+  if (!id) {
+    showInlineError(els.inputRouteId, "Geef de route een ID (bestandsnaam).");
+    els.inputRouteId.focus();
+    return;
+  }
+  const json = buildRouteJson();
+  const blob = new Blob([JSON.stringify(json, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `${id}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+});
+
+// -----------------------------------------------------------
+// AI GENEREREN
+// -----------------------------------------------------------
+els.btnAiGenerate.addEventListener("click", async () => {
+  if (!state.apiKeyConfirmed || !state.apiKey) {
+    alert("Voer eerst een geldige Anthropic API-sleutel in en bevestig.");
+    return;
+  }
+
+  const keywords = els.inputKeywords.value.trim();
+  const title = els.inputTitle.value.trim();
+  const location = els.inputLocation.value.trim();
+  const difficulty = els.inputDifficulty.value;
+  const gpx = state.gpx;
+  const weather = state.weather;
+
+  if (!title && !location && !keywords) {
+    alert("Vul minstens een titel, locatie of steekwoorden in.");
+    return;
+  }
+
+  els.btnAiGenerate.classList.add("is-loading");
+  els.btnAiGenerate.textContent = "\u2746 Genereren\u2026";
+
+  const prompt = `Je schrijft Nederlandse wandelverhalen voor MyTrailWalks, een persoonlijk outdoor storytelling platform.
+
+Gegevens van de wandeling:
+- Titel: ${title || "onbekend"}
+- Locatie: ${location || "onbekend"}
+- Moeilijkheid: ${difficulty || "onbekend"}
+- Steekwoorden / ervaringen: ${keywords || "geen"}
+${gpx ? `- Afstand: ${gpx.distance_km} km, Duur: ${gpx.duration_hours} uur, Stijging: ${gpx.elevation_up_m} m` : ""}
+${weather ? `- Weer: min ${weather.temperature_min}°C, max ${weather.temperature_max}°C, neerslag ${weather.precipitation_mm} mm, wind ${weather.wind_kmh} km/u` : ""}
+
+Genereer ALLEEN een JSON-object (geen uitleg, geen markdown) met deze velden:
+{
+  "summary": "Één zin samenvatting van max 160 tekens voor de grid-weergave.",
+  "story_blocks": [
+    { "type": "text", "value": "Eerste alinea van het verhaal." },
+    { "type": "text", "value": "Tweede alinea van het verhaal." }
+  ],
+  "tips": "2-4 praktische tips voor wandelaars, als doorlopende tekst."
+}
+
+Schrijf het verhaal in 3-5 alinea's. Persoonlijk, beschrijvend, no clickbait.`;
+
+  try {
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": state.apiKey,
+        "anthropic-version": "2023-06-01",
+      },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-6",
+        max_tokens: 1000,
+        messages: [{ role: "user", content: prompt }],
+      }),
+    });
+
+    const data = await response.json();
+    const text = data.content?.map((c) => c.text || "").join("") || "";
+    const clean = text.replace(/```json|```/g, "").trim();
+    const parsed = JSON.parse(clean);
+
+    if (parsed.summary) {
+      els.inputIntro.value = parsed.summary;
+      els.introCount.textContent = `${parsed.summary.length}/160`;
+    }
+    if (parsed.story_blocks?.length) {
+      state.storyBlocks = parsed.story_blocks;
+      renderBlockEditor();
+    }
+    if (parsed.tips) els.inputTips.value = parsed.tips;
+
+    updatePreview();
+  } catch (err) {
+    console.error("AI generatie fout:", err);
+    alert("AI-generatie mislukt. Controleer je API-sleutel en verbinding.");
+  } finally {
+    els.btnAiGenerate.classList.remove("is-loading");
+    els.btnAiGenerate.innerHTML = '<span class="btn-icon">\u2746</span> Genereer met AI';
+  }
+});
+
+// -----------------------------------------------------------
+// LEAFLET KAART
+// -----------------------------------------------------------
+let leafletMap = null;
+let leafletRoute = null;
+
+function initLeafletMap(gpx) {
+  const container = document.getElementById("leaflet-preview-map");
+  if (!container) return;
+
+  // Kaart verwijderen als die al bestaat (bij herladen)
+  if (leafletMap) {
+    leafletMap.remove();
+    leafletMap = null;
+    leafletRoute = null;
+  }
+
+  const lat = gpx.startLat;
+  const lon = gpx.startLon;
+
+  leafletMap = L.map("leaflet-preview-map", { zoomControl: true, scrollWheelZoom: false });
+
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    attribution: "© OpenStreetMap contributors",
+    maxZoom: 18,
+  }).addTo(leafletMap);
+
+  // Route tekenen als trackpunten beschikbaar zijn
+  if (gpx.trackPoints?.length > 1) {
+    leafletRoute = L.polyline(gpx.trackPoints, {
+      color: "#2C4A3B",
+      weight: 3,
+      opacity: 0.85,
+    }).addTo(leafletMap);
+    leafletMap.fitBounds(leafletRoute.getBounds(), { padding: [16, 16] });
+  } else {
+    // Geen trackpunten — toon alleen startpunt
+    leafletMap.setView([lat, lon], 13);
+  }
+
+  // Startmarker
+  L.circleMarker([lat, lon], {
+    radius: 6,
+    fillColor: "#2C4A3B",
+    color: "#fff",
+    weight: 2,
+    opacity: 1,
+    fillOpacity: 1,
+  }).addTo(leafletMap).bindPopup("Startpunt");
+}
+
+// -----------------------------------------------------------
+// HELPERS
+// -----------------------------------------------------------
+function showInlineError(inputEl, message) {
+  inputEl.style.borderColor = "var(--color-hard)";
+  const existing = inputEl.parentElement.querySelector(".inline-error");
+  if (existing) existing.remove();
+  const span = document.createElement("span");
+  span.className = "inline-error field__help";
+  span.style.color = "var(--color-hard)";
+  span.textContent = message;
+  inputEl.parentElement.appendChild(span);
+  setTimeout(() => {
+    inputEl.style.borderColor = "";
+    span.remove();
+  }, 3000);
+}
+
+// -----------------------------------------------------------
+// INIT — v2.0.0
+// -----------------------------------------------------------
+window.appReady.then(() => {
+  renderBlockEditor();
+  updatePreview();
+});
