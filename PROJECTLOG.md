@@ -1,6 +1,6 @@
 # MyTrailWalks — PROJECTLOG.md
-## Bijgewerkt: 22-06-2026
-> Versie: v1.3.0 · Projectlog — chronologisch overzicht van sessies en wijzigingen
+## Bijgewerkt: 25-06-2026
+> Versie: v1.4.0 · Projectlog — chronologisch overzicht van sessies en wijzigingen
 
 ---
 
@@ -82,32 +82,6 @@
 **Onderwerp:** Supabase live testen + auth i18n + analytics + rollen + robuuste init-volgorde
 **Status aan einde sessie:** T6-001 ✅ Volledig live · T0-009 ✅ Done · TD-007 ✅ Done · TD-008 ✅ Done
 
-### Uitgevoerde taken
-
-**Supabase setup:**
-- `profiles` tabel aangemaakt met `role` kolom (gast/creator/admin) i.p.v. `is_admin boolean`
-- Trigger aangemaakt voor automatisch profiel bij registratie
-- `page_views` tabel aangemaakt voor analytics
-- RLS policies correct ingesteld op beide tabellen
-- Supabase URL Configuration ingesteld op GitHub Pages URL
-- Account Vorilo geregistreerd + role admin gezet via SQL
-
-**Auth:**
-- `auth.js` v1.1.0: `getProfile()` haalt nu `role` op i.p.v. `is_admin`. `window._supabase` geëxporteerd. `redirectTo` correct ingesteld op `https://vorilo2000-source.github.io/MyTrailWalks/reset.html`
-
-**i18n auth:**
-- `data/i18n/nl/auth.json` v1.0.0: auth modal teksten NL
-- `data/i18n/en/auth.json` v1.0.0: auth modal teksten EN
-- `topbar-auth.js` v2.1.0: i18n via `_updateModalTexts()` zonder structuur te breken. Wacht op `window.appReady` voor render.
-
-**Analytics:**
-- `js/analytics.js` v1.1.0: pageviews, sessieduur, terugkerende bezoekers. Retry loop voor `window._supabase`.
-
-**Centrale init:**
-- `js/app.js` v3.0.0: i18next centraal geïnitialiseerd vóór component injectie. `window.i18nReady` + `window.appReady` geëxporteerd.
-- `js/home.js` v2.2.0: geen eigen `i18nModule.init()` meer.
-- `js/creator.js` v1.2.0: geen eigen `i18nModule.init()` meer.
-
 ### Aangeleverde bestanden
 
 | Bestand | Versie | Omschrijving |
@@ -123,22 +97,111 @@
 | `data/i18n/nl/auth.json` | v1.0.0 | Auth modal teksten NL |
 | `data/i18n/en/auth.json` | v1.0.0 | Auth modal teksten EN |
 
-### Architectuurbeslissingen sessie 04
+---
+
+## Sessie 05 — 25-06-2026
+**Onderwerp:** Cloudinary opzetten + creator uitbreiden + route detail pagina + wandelingen overzicht + bestandsstructuur
+**Status aan einde sessie:** T0-007 ✅ Done · T1-002 ✅ Done · T1-004 ✅ Done · T1-005 ✅ Done · T1-009 ✅ Done · T2-001 ✅ Done · T2-003 🔄 Gedeeltelijk
+
+### Uitgevoerde taken
+
+**Cloudinary (T0-007):**
+- Account aangemaakt, cloud name: `dgzlcqdcc`
+- Workflow gedocumenteerd in `data/docs/cloudinary-workflow.md`
+- URL structuur: Hero `w_1200,f_auto`, Galerij `w_800,f_auto`, Thumbnail `w_400,f_auto`
+- Auto-fix in creator: URL's worden automatisch voorzien van transformaties bij blur
+
+**Creator uitbreidingen (T1-006 v2.0.0 → v2.1.0):**
+- Ruwe JSON preview vervangen door visuele route preview
+- Blokken-editor: tekst, foto (volledig breed), fotogrid (2 of 3 kolommen), link
+- JSON import: bestaande route laden en bewerken
+- Leaflet kaart in preview met GPX route getekend
+- Moeilijkheid automatisch berekend via SAC-schaal T1-T6 (afstand + stijging + weer)
+- Vervoersmiddel multi-select (wandelen, fietsen, motor, auto, trein, bus, boot, vliegtuig)
+- Galerij sectie onderaan
+- Twee JSON exports: volledige content + routes.json entry
+- Knoppen in header leesbaar gemaakt op donkere achtergrond
+- startLat/startLon opgeslagen in JSON export voor kaart bij import
+
+**Route detail pagina (T1-002):**
+- `routes/route.html` + `js/route.js` + `css/route.css`
+- Laadt via `?id=` query parameter
+- Hero, stats (7 velden), weerdata, verhaal blokken, tips, Leaflet kaart, vervoersmiddel, galerij, acties
+- Deel-knop via Web Share API + clipboard fallback
+- Print-knop via window.print()
+- i18n NL + EN
+
+**Wandelingen overzicht (T1-009):**
+- `wandelingen.html` + `js/wandelingen.js` + `css/wandelingen.css`
+- Alle routes als preview kaartjes
+- Klik → `routes/route.html?id=[id]`
+- i18n NL + EN
+
+**Homepage update (T1-001):**
+- `index.html` v2.5.0: wandelingen sectie met top 3 meest recente routes
+- "Alle wandelingen →" link naar `wandelingen.html`
+- `home.js` v2.3.0: sorteert op date_walked, max 3 routes, links naar route detail
+- `home.css` v2.2.0: routes-section__header layout
+
+**Bestandsstructuur (TD-009, TD-010):**
+- Route JSON bestanden verplaatst naar `routes/`
+- `routes.json` verplaatst naar `routes/routes.json`
+- Route IDs gecorrigeerd: geen spaties, koppeltekens
+- Alle paden aangepast in route.js, wandelingen.js, home.js, creator.js
+
+**i18n bestanden:**
+- `data/i18n/nl/creator.json` v1.0.0
+- `data/i18n/en/creator.json` v1.0.0
+- `data/i18n/nl/route.json` v1.0.0
+- `data/i18n/en/route.json` v1.0.0
+- `data/i18n/nl/wandelingen.json` v1.0.0
+- `data/i18n/en/wandelingen.json` v1.0.0
+
+### Aangeleverde bestanden
+
+| Bestand | Versie | Omschrijving |
+|---------|--------|--------------|
+| `creator.html` | v2.0.0 | Visuele preview, blokken-editor, JSON import, vervoersmiddel, galerij |
+| `css/creator.css` | v2.0.0 | Blokken-editor, visuele preview, transport checkboxes |
+| `js/creator.js` | v2.1.0 | Alle uitbreidingen, Leaflet, SAC-schaal, auto Cloudinary fix |
+| `routes/route.html` | v1.0.0 | Route detail pagina |
+| `css/route.css` | v1.0.0 | Route detail styling |
+| `js/route.js` | v1.1.0 | Route detail logica + i18n |
+| `wandelingen.html` | v1.0.0 | Wandelingen overzicht |
+| `css/wandelingen.css` | v1.0.0 | Wandelingen overzicht styling |
+| `js/wandelingen.js` | v1.1.0 | Wandelingen overzicht logica + i18n |
+| `index.html` | v2.5.0 | Top 3 routes + "Alle wandelingen →" link |
+| `css/home.css` | v2.2.0 | routes-section__header |
+| `js/home.js` | v2.3.0 | Max 3 routes, sortering op datum, route detail links |
+| `routes/routes.json` | v2.1.0 | Gecorrigeerde route entries |
+| `data/docs/cloudinary-workflow.md` | v1.0.0 | Cloudinary upload workflow documentatie |
+| `data/i18n/nl/creator.json` | v1.0.0 | Creator i18n NL |
+| `data/i18n/en/creator.json` | v1.0.0 | Creator i18n EN |
+| `data/i18n/nl/route.json` | v1.0.0 | Route i18n NL |
+| `data/i18n/en/route.json` | v1.0.0 | Route i18n EN |
+| `data/i18n/nl/wandelingen.json` | v1.0.0 | Wandelingen i18n NL |
+| `data/i18n/en/wandelingen.json` | v1.0.0 | Wandelingen i18n EN |
+
+### Architectuurbeslissingen sessie 05
 
 | Onderwerp | Beslissing |
 |-----------|-----------|
-| **Rollen** | gast / creator / admin via `role` kolom in profiles tabel |
-| **i18n init** | Centraal in app.js — paginascripts roepen geen init() meer aan |
-| **window.i18nReady** | Nieuwe Promise — topbar-auth.js wacht hierop voor teksten |
-| **Cache busting** | Versienummer in script tags: `?v=x.x.x` bij elke deploy |
-| **Analytics** | Supabase page_views tabel — RLS permissive voor public |
-| **Script volgorde** | Eruda → Supabase SDK → i18next CDN → i18n.js → auth.js → topbar-auth.js → analytics.js → app.js → [pagina].js |
+| **Bestandsstructuur** | Route JSON bestanden in `routes/`. Geen aparte `data/content/` map. |
+| **Route IDs** | Altijd lowercase met koppeltekens, geen spaties |
+| **Moeilijkheid** | SAC-wandelschaal T1-T6. Score = afstand(km) + stijging(/100m) + weerfactoren |
+| **Cloudinary** | Auto-fix bij import en blur: w_1200 hero, w_800 galerij/blokken, w_400 thumbnail |
+| **Leaflet CDN** | jsdelivr zonder integrity check (unpkg blokkeerde op GitHub Pages) |
+| **Routes overzicht** | `wandelingen.html` als generiek patroon — later ook `hikes.html`, `ritten.html` |
+| **Homepage** | Top 3 meest recente routes. "Alle wandelingen →" naar `wandelingen.html` |
+| **Twee JSON exports** | Creator exporteert (1) volledige route JSON en (2) routes.json entry apart |
 
-### Openstaande punten na sessie 04
-- Cloudinary account aanmaken (T0-007)
-- Eerste route aanmaken via creator.html (T1-005)
-- Route detail pagina (T1-002)
-- Analytics dashboard voor admin (T6-005)
+### Openstaande punten na sessie 05
+- GPX route tekenen op kaart in route.html (trackPoints aanwezig in JSON maar niet gebruikt)
+- Route kaartpagina (T1-007)
+- Draft management (T1-008)
+- Print CSS (T7-001)
+- Analytics dashboard (T6-005)
+- Filters op wandelingen.html (T4-001)
 
 ---
 
