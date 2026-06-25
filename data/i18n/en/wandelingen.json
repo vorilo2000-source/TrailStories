@@ -1,0 +1,18 @@
+{
+  "pageTitle": "Walks — MyTrailWalks",
+  "eyebrow": "MyTrailWalks",
+  "heading": "Walks",
+  "loading": "Loading…",
+  "empty": "No walks available yet.",
+  "error": "Walks could not be loaded.",
+  "stats": {
+    "distance": "distance",
+    "duration": "duration",
+    "elevation": "elevation"
+  },
+  "units": {
+    "km": " km",
+    "hours": " h",
+    "meters": " m"
+  }
+}
