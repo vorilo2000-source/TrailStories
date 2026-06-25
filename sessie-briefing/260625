@@ -1,0 +1,289 @@
+# MyTrailWalks — Sessie 06 Inbrief
+## Datum: volgende sessie na 25-06-2026
+> Doel: GPX route op kaart · Route kaartpagina · Draft management · Print CSS · Filters
+
+---
+
+## Context
+
+MyTrailWalks is een persoonlijk visueel outdoor storytelling platform. Vanilla HTML/CSS/JS, geen frameworks. i18next voor vertalingen. Foto's via Cloudinary (extern). Statische site op GitHub Pages.
+
+---
+
+## Wat er klaar is na sessie 05
+
+| Bestand | Versie | Status |
+|---------|--------|--------|
+| `js/i18n.js` | v1.3.0 | ✅ getBasePath() fix |
+| `js/app.js` | v3.0.0 | ✅ Centrale i18n init + window.i18nReady + window.appReady |
+| `js/auth.js` | v1.1.0 | ✅ role kolom, window._supabase, redirectTo fix |
+| `js/topbar-auth.js` | v2.1.0 | ✅ i18n via _updateModalTexts(), wacht op appReady |
+| `js/analytics.js` | v1.1.0 | ✅ Supabase pageview tracking |
+| `js/home.js` | v2.3.0 | ✅ Top 3 routes, sortering op datum, link naar route detail |
+| `js/creator.js` | v2.1.0 | ✅ Visuele preview, blokken-editor, Leaflet, SAC-schaal, galerij, twee exports |
+| `js/route.js` | v1.1.0 | ✅ Route detail logica + i18n NL+EN |
+| `js/wandelingen.js` | v1.1.0 | ✅ Wandelingen overzicht + i18n NL+EN |
+| `css/creator.css` | v2.0.0 | ✅ Blokken-editor, visuele preview, transport checkboxes |
+| `css/route.css` | v1.0.0 | ✅ Route detail styling |
+| `css/wandelingen.css` | v1.0.0 | ✅ Wandelingen overzicht styling |
+| `css/home.css` | v2.2.0 | ✅ routes-section__header |
+| `creator.html` | v2.0.0 | ✅ Volledig uitgebreid |
+| `routes/route.html` | v1.0.0 | ✅ Route detail pagina |
+| `wandelingen.html` | v1.0.0 | ✅ Wandelingen overzicht |
+| `index.html` | v2.5.0 | ✅ Top 3 + "Alle wandelingen →" |
+| `routes/routes.json` | v2.1.0 | ✅ Gecorrigeerde route entries |
+| `data/docs/cloudinary-workflow.md` | v1.0.0 | ✅ Cloudinary documentatie |
+| `data/i18n/nl/creator.json` | v1.0.0 | ✅ |
+| `data/i18n/en/creator.json` | v1.0.0 | ✅ |
+| `data/i18n/nl/route.json` | v1.0.0 | ✅ |
+| `data/i18n/en/route.json` | v1.0.0 | ✅ |
+| `data/i18n/nl/wandelingen.json` | v1.0.0 | ✅ |
+| `data/i18n/en/wandelingen.json` | v1.0.0 | ✅ |
+
+---
+
+## Supabase project
+
+| Gegeven | Waarde |
+|---------|--------|
+| **Project** | MyTrailWalks |
+| **URL** | `https://bzcevvfesushlorymszd.supabase.co` |
+| **Dashboard** | https://supabase.com/dashboard/project/bzcevvfesushlorymszd |
+| **Site URL** | `https://vorilo2000-source.github.io/MyTrailWalks` |
+
+### Tabellen
+
+**profiles:**
+```sql
+id uuid references auth.users primary key,
+username text,
+role text default 'gast' check (role in ('gast', 'creator', 'admin')),
+created_at timestamptz default now()
+```
+
+**page_views:**
+```sql
+id uuid primary key default gen_random_uuid(),
+page_path text not null,
+user_id uuid references auth.users,
+session_id text,
+entered_at timestamptz default now(),
+exited_at timestamptz,
+duration_seconds int
+```
+
+### Accounts
+- **Vorilo** — role: admin
+
+---
+
+## Cloudinary
+
+| Gegeven | Waarde |
+|---------|--------|
+| **Cloud name** | `dgzlcqdcc` |
+| **Dashboard** | https://console.cloudinary.com |
+| **API key nodig?** | Nee — alleen publieke URLs |
+
+### URL-structuur
+```
+Hero:      https://res.cloudinary.com/dgzlcqdcc/image/upload/w_1200,f_auto/[public_id]
+Galerij:   https://res.cloudinary.com/dgzlcqdcc/image/upload/w_800,f_auto/[public_id]
+Thumbnail: https://res.cloudinary.com/dgzlcqdcc/image/upload/w_400,f_auto/[public_id]
+```
+
+---
+
+## Bestandsstructuur routes
+
+```
+routes/
+  route.html          ← detail pagina (laadt via ?id=)
+  routes.json         ← overzicht met basisdata voor grid
+  grenspark-kalmthout.json
+  kalmthoutse-heide.json
+```
+
+### Route JSON structuur (v2.1.0)
+```json
+{
+  "id": "kalmthoutse-heide",
+  "status": "draft",
+  "published_date": "2026-06-18",
+  "transport": ["walking"],
+  "title": { "nl": "...", "en": "" },
+  "location": "...",
+  "region": "...",
+  "difficulty": "T2",
+  "source_reference": null,
+  "tags": [],
+  "summary": { "nl": "...", "en": "" },
+  "story": { "nl": "...", "en": "" },
+  "story_blocks": [
+    { "type": "text", "value": "..." },
+    { "type": "photo", "value": "https://res.cloudinary.com/..." },
+    { "type": "photo-grid", "cols": 2, "photos": ["url1", "url2"] },
+    { "type": "link", "name": "Naam", "url": "https://..." }
+  ],
+  "gallery": [{ "url": "https://res.cloudinary.com/..." }],
+  "tips": { "nl": "...", "en": "" },
+  "photos": [{ "url": "https://res.cloudinary.com/...", "caption": "", "role": "hero" }],
+  "gpx_stats": {
+    "distance_km": 6.9,
+    "duration_hours": 2.7,
+    "elevation_up_m": 423,
+    "elevation_down_m": 432,
+    "avg_speed_kmh": 5.5,
+    "max_speed_kmh": 37.8,
+    "highest_point_m": 30,
+    "lowest_point_m": 16,
+    "start_lat": 51.418,
+    "start_lon": 4.418
+  },
+  "weather": {
+    "date": "2026-06-18",
+    "temperature_min": 14.9,
+    "temperature_max": 28.8,
+    "precipitation_mm": 0.6,
+    "wind_kmh": 13.1,
+    "condition": "...",
+    "source": "Open-Meteo"
+  }
+}
+```
+
+---
+
+## SAC-wandelschaal (moeilijkheidsberekening)
+
+**Score = afstand(km) + stijging(/100m) + weerfactoren**
+
+| Factor | Punten |
+|--------|--------|
+| Per km afstand | +1 |
+| Per 100m stijging | +1 |
+| Temperatuur ≥ 25°C | +2 |
+| Neerslag ≥ 5mm | +2 |
+| Wind ≥ 30 km/u | +1 |
+
+| Score | Code | Label |
+|-------|------|-------|
+| 0–5 | T1 | Wandelen |
+| 6–10 | T2 | Bergwandeling |
+| 11–16 | T3 | Veeleisende bergwandeling |
+| 17–22 | T4 | Alpine wandeling |
+| 23–28 | T5 | Veeleisende alpine wandeling |
+| 29+ | T6 | Moeilijke alpine wandeling |
+
+---
+
+## Prioriteiten sessie 06
+
+### 1. GPX route tekenen op kaart in route.html (T2-003)
+
+**Probleem:** `routes/route.html` toont Leaflet kaart op startpunt maar tekent de route niet. trackPoints worden opgeslagen in de creator JSON maar niet doorgegeven aan de route detail pagina.
+
+**Oplossing:** trackPoints opslaan in de route JSON export (max 500 punten, gesamplet) en inladen in `route.js` om de route als polyline te tekenen.
+
+**Bestanden:** `js/route.js`, `js/creator.js`
+
+---
+
+### 2. Route kaartpagina (T1-007)
+
+**Doel:** `routes/[id]-map.html` — aparte pagina met fullscreen interactieve Leaflet kaart + GPX route overlay. Opent in apart tabblad via "Route openen" knop op route detail pagina.
+
+**Onderdelen:**
+- Fullscreen Leaflet kaart
+- GPX route als polyline
+- Startpunt marker
+- Terug-knop naar route detail
+- Topbar + footer
+
+---
+
+### 3. Draft management (T1-008)
+
+**Doel:** Routes met `status: "draft"` tonen een "Binnenkort" badge op de grid maar zijn niet klikbaar. Gepubliceerde routes zijn klikbaar.
+
+**Bestanden:** `js/home.js`, `js/wandelingen.js`, `css/home.css`, `css/wandelingen.css`
+
+---
+
+### 4. Print CSS voor routepagina (T7-001)
+
+**Doel:** `@media print` in `route.css`:
+- A4 formaat
+- Hero foto behouden
+- Interactieve kaart → verbergen of statisch beeld
+- Alle links actief en zichtbaar
+- Topbar en footer verbergen
+- Galerij netjes op pagina
+
+---
+
+### 5. Filters op wandelingen.html (T4-001) — optioneel
+
+**Doel:** Filter routes op moeilijkheid (T1-T6) en regio. Eenvoudige checkbox of dropdown filters boven het grid.
+
+---
+
+## Architectuurafspraken (bevestigd sessie 05)
+
+| Onderwerp | Afspraak |
+|-----------|---------|
+| **Script volgorde** | Eruda → Supabase SDK → i18next CDN → i18n.js → auth.js → topbar-auth.js → analytics.js → app.js → Leaflet (indien nodig) → [pagina].js |
+| **Eruda** | Niet verwijderen als aanwezig in HTML pagina |
+| **CSS** | Altijd in `<head>` |
+| **Favicon** | Elke nieuwe pagina krijgt favicon tags na `<title>`, vóór CSS |
+| **Cache busting** | `?v=x.x.x` aan script tags bij elke deploy |
+| **Cloudinary** | Hero w_1200,f_auto · Galerij w_800,f_auto · Thumbnail w_400,f_auto |
+| **Route bestanden** | Volledige JSON in `routes/[id].json` · Overzicht in `routes/routes.json` |
+| **Route IDs** | Altijd lowercase met koppeltekens, geen spaties |
+| **Leaflet CDN** | `https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.min.js` (geen integrity check) |
+| **i18n init** | Centraal in app.js — paginascripts roepen geen init() aan |
+| **Rollen** | gast / creator / admin via `role` kolom in profiles tabel |
+
+---
+
+## Design tokens (uit main.css)
+
+```
+--color-forest: #2C4A3B
+--color-forest-dark: #1C3328
+--color-earth: #8C6A4F
+--color-water: #4C7A89
+--color-cream: #F6F1E7
+--color-charcoal: #2B2926
+--color-charcoal-soft: #5C5752
+--color-line: #DDD4C2
+--font-display: Fraunces
+--font-body: Inter
+--font-mono: JetBrains Mono
+--content-max-width: 1200px
+--content-narrow-width: 720px
+```
+
+---
+
+## GitHub Pages
+
+| Gegeven | Waarde |
+|---------|--------|
+| **URL** | `https://vorilo2000-source.github.io/MyTrailWalks/` |
+| **Repo** | vorilo2000-source/MyTrailWalks |
+
+---
+
+## Werkwijze
+
+1. Vraag altijd toestemming vóór uitvoering
+2. Check of gebruiker informatie heeft voordat je zelf zoekt
+3. Bouw in kleine iteraties
+4. Geef korte uitleg ná elke taak
+5. Eruda niet verwijderen uit HTML pagina's
+6. Update backlog + projectlog aan einde sessie
+
+---
+
+# END OF SESSIE_06_INBRIEF.md
