@@ -1,6 +1,6 @@
 # MyTrailWalks — BACKLOG.md
-## Bijgewerkt: 22-06-2026
-> Versie: v2.6.0 · MVP backlog structure
+## Bijgewerkt: 25-06-2026
+> Versie: v2.7.0 · MVP backlog structure
 
 ---
 
@@ -14,13 +14,13 @@
 |----|------|------|--------------|------|-----------|--------|
 | T0-001 | architecture | Project setup | Basis projectstructuur opzetten (HTML/CSS/JS + folders data/assets/js/css) | Feature | 🔴 High | 📋 Open |
 | T0-002 | architecture | JSON data model | Definitief routes.json schema implementeren | Feature | 🔴 High | ✅ Done — sessie 01 (18-06-2026). |
-| T0-003 | architecture | Route template | Standaard routepagina template (hero, stats, map, story) bouwen | Feature | 🔴 High | 🔄 Heropend |
+| T0-003 | architecture | Route template | Standaard routepagina template (hero, stats, map, story) bouwen | Feature | 🔴 High | ✅ Done — sessie 05 (25-06-2026). |
 | T0-004 | architecture | Design system | Basis UI design rules (typografie, spacing, kleuren outdoor theme) | Improvement | 🟡 Medium | ✅ Done |
 | T0-005 | architecture, i18n | I18next systeem | `js/i18n.js` v1.3.0: loadPath dynamisch, localStorage via `mtw_language`. getBasePath() filtert .html segmenten. | Feature | 🔴 High | ✅ Done — sessie 03 (21-06-2026). |
 | T0-006 | architecture, components | Component-systeem | `js/app.js` v3.0.0: centrale i18n init + fetch+injectie topbar/footer via `window.appReady` + `window.i18nReady` Promise. | Feature | 🔴 High | ✅ Done — sessie 04 (22-06-2026). |
-| T0-007 | architecture, media | Cloudinary integratie | Cloudinary gratis tier (25GB opslag, 25GB bandbreedte/maand) als externe foto-opslag. Automatische WebP. Account aanmaken + upload workflow documenteren. | Feature | 🔴 High | 📋 Open |
-| T0-008 | architecture, api | API integraties | Drie externe APIs voor de creator: (1) Open-Meteo — historische weerdata, gratis, geen key. (2) OpenStreetMap Nominatim — locatienamen uit coördinaten, gratis. (3) Anthropic API — AI-gegenereerde tekst, betaald per gebruik, key ingevoerd door gebruiker in creator. | Feature | 🔴 High | ✅ Done — sessie 03 (21-06-2026). |
-| T0-009 | architecture, analytics | Analytics systeem | `js/analytics.js` v1.1.0: pageviews, sessieduur, terugkerende bezoekers via Supabase `page_views` tabel. RLS policies correct ingesteld. | Feature | 🔴 High | ✅ Done — sessie 04 (22-06-2026). |
+| T0-007 | architecture, media | Cloudinary integratie | Cloudinary gratis tier. Cloud name: dgzlcqdcc. Upload workflow gedocumenteerd in `data/docs/cloudinary-workflow.md`. Automatische WebP via f_auto. Hero: w_1200,f_auto. Thumbnail: w_400,f_auto. Galerij: w_800,f_auto. | Feature | 🔴 High | ✅ Done — sessie 05 (25-06-2026). |
+| T0-008 | architecture, api | API integraties | Drie externe APIs: Open-Meteo, Nominatim, Anthropic API. Leaflet.js via jsdelivr CDN voor kaarten. | Feature | 🔴 High | ✅ Done — sessie 03 (21-06-2026). |
+| T0-009 | architecture, analytics | Analytics systeem | `js/analytics.js` v1.1.0: pageviews, sessieduur, terugkerende bezoekers via Supabase `page_views` tabel. | Feature | 🔴 High | ✅ Done — sessie 04 (22-06-2026). |
 
 ---
 
@@ -28,14 +28,15 @@
 
 | ID | Tags | Taak | Omschrijving | Type | Prioriteit | Status |
 |----|------|------|--------------|------|-----------|--------|
-| T1-001 | routes | Homepage grid | Route-overzicht met tiles (foto + stats + titel) | Feature | 🔴 High | ✅ Done — sessie 02 (20-06-2026). |
-| T1-002 | routes | Route detail page | Dynamische routepagina rendering via JSON. A4-layout bij print. Kaart-knop opent apart tabblad. Print-knop publiek. | Feature | 🔴 High | 📋 Open |
-| T1-003 | routes | JSON loader | routes.json inladen en renderen in UI | Feature | 🔴 High | ✅ Done |
-| T1-004 | routes | Routing logic | Navigatie tussen homepage en route detail pages | Feature | 🔴 High | 📋 Open |
-| T1-005 | routes | Eerste route entry | Eerste route aanmaken via creator.html en exporteren naar `data/content/`. | Feature | 🔴 High | 📋 Open |
-| T1-006 | routes, ui, ai | Route creator | `creator.html` + `css/creator.css` + `js/creator.js` gebouwd. Formulier + live JSON preview + AI-assistentie. GPX parser (Haversine), Nominatim, Open-Meteo, Anthropic API. Twee modi: handmatig en AI-assisted. Export naar [id].json. Toegang via admin dropdown na inlog. | Feature | 🔴 High | ✅ Done — sessie 03 (21-06-2026). |
-| T1-007 | routes, ui | Route kaartpagina | `routes/[id]-map.html`: interactieve Leaflet kaart + GPX overlay. Apart tabblad. Topbar + footer. | Feature | 🟡 Medium | 📋 Open |
-| T1-008 | routes, ux | Draft management | Homepage grid toont routes op basis van status. Draft-routes tonen "Binnenkort" badge maar zijn niet klikbaar. Creator kan bestaande draft openen en aanvullen na de wandeling. | Feature | 🟡 Medium | 📋 Open |
+| T1-001 | routes | Homepage grid | Route-overzicht met tiles (foto + stats + titel). Top 3 meest recente routes. Link naar wandelingen.html. | Feature | 🔴 High | ✅ Done — sessie 02 + sessie 05. |
+| T1-002 | routes | Route detail page | `routes/route.html` + `js/route.js` + `css/route.css`. Dynamisch via `?id=`. Hero, stats, weer, verhaal blokken, tips, Leaflet kaart, vervoersmiddel, galerij, acties. i18n NL+EN. | Feature | 🔴 High | ✅ Done — sessie 05 (25-06-2026). |
+| T1-003 | routes | JSON loader | routes/routes.json inladen en renderen in UI | Feature | 🔴 High | ✅ Done |
+| T1-004 | routes | Routing logic | Navigatie via `?id=` query parameter. `wandelingen.html` als overzicht. `routes/route.html` als detail. | Feature | 🔴 High | ✅ Done — sessie 05 (25-06-2026). |
+| T1-005 | routes | Eerste route entry | Kalmthoutse Heide + Grenspark Kalmthout aangemaakt. JSON in `routes/`. Entry in `routes/routes.json`. | Feature | 🔴 High | ✅ Done — sessie 05 (25-06-2026). |
+| T1-006 | routes, ui, ai | Route creator | `creator.html` v2.0.0 + `css/creator.css` + `js/creator.js` v2.1.0. Visuele preview, blokken-editor (tekst/foto/fotogrid/link), JSON import, Leaflet kaart preview, moeilijkheid via SAC-schaal T1-T6, vervoersmiddel multi-select, galerij sectie, twee JSON exports (content + routes entry). | Feature | 🔴 High | ✅ Done — sessie 03 + sessie 05. |
+| T1-007 | routes, ui | Route kaartpagina | `routes/[id]-map.html`: interactieve Leaflet kaart + GPX overlay. Apart tabblad. | Feature | 🟡 Medium | 📋 Open |
+| T1-008 | routes, ux | Draft management | Homepage grid toont routes op basis van status. Draft-routes tonen "Binnenkort" badge maar zijn niet klikbaar. | Feature | 🟡 Medium | 📋 Open |
+| T1-009 | routes | Wandelingen overzicht | `wandelingen.html` + `js/wandelingen.js` + `css/wandelingen.css`. Alle routes als grid. i18n NL+EN. Klik → route detail. | Feature | 🔴 High | ✅ Done — sessie 05 (25-06-2026). |
 
 ---
 
@@ -43,12 +44,12 @@
 
 | ID | Tags | Taak | Omschrijving | Type | Prioriteit | Status |
 |----|------|------|--------------|------|-----------|--------|
-| T2-001 | maps | Leaflet setup | Leaflet.js integratie met OpenStreetMap tiles | Feature | 🔴 High | 📋 Open |
-| T2-002 | maps | GPX parser | GPX bestand client-side parsen: coördinaten, tijdstempels, hoogte, snelheid, steilste hellingen, rustpunten. | Feature | 🔴 High | ✅ Done — sessie 03 (21-06-2026) — ingebouwd in creator.js. |
-| T2-003 | maps | Route overlay | GPX track overlay op interactieve kaart | Feature | 🔴 High | 📋 Open |
+| T2-001 | maps | Leaflet setup | Leaflet.js via jsdelivr CDN. Kaart in creator preview + route detail pagina. | Feature | 🔴 High | ✅ Done — sessie 05 (25-06-2026). |
+| T2-002 | maps | GPX parser | GPX bestand client-side parsen: coördinaten, tijdstempels, hoogte, snelheid. trackPoints opgeslagen voor routetekening. startLat/startLon opgeslagen in JSON export. | Feature | 🔴 High | ✅ Done — sessie 03 + sessie 05. |
+| T2-003 | maps | Route overlay | GPX track overlay in creator preview via Leaflet polyline. Route detail pagina toont kaart op startpunt (trackPoints nog niet in route.html). | Feature | 🔴 High | 🔄 Gedeeltelijk — sessie 05. |
 | T2-004 | maps | Elevation profile | Hoogteprofiel genereren uit GPX data | Feature | 🟡 Medium | 📋 Open |
-| T2-005 | maps | GPX upload | GPX-bestand inladen zodra beschikbaar voor eerste route | Feature | 🟡 Medium | 📋 Open |
-| T2-006 | maps, print | Statische kaartafbeelding | Bij afdrukken: interactieve kaart vervangen door statische kaartafbeelding. Interactieve versie blijft in apart tabblad. | Feature | 🟡 Medium | 📋 Open |
+| T2-005 | maps | GPX upload | GPX-bestand inladen in creator. trackPoints samplen tot max 500 voor performantie. | Feature | 🟡 Medium | ✅ Done — sessie 05. |
+| T2-006 | maps, print | Statische kaartafbeelding | Bij afdrukken: interactieve kaart vervangen door statische kaartafbeelding. | Feature | 🟡 Medium | 📋 Open |
 
 ---
 
@@ -56,12 +57,12 @@
 
 | ID | Tags | Taak | Omschrijving | Type | Prioriteit | Status |
 |----|------|------|--------------|------|-----------|--------|
-| T3-001 | ui | Hero section | Fullscreen hero foto per route | Feature | 🔴 High | 📋 Open |
-| T3-002 | ui | Story blocks | Alternating tekst/foto storytelling layout | Feature | 🔴 High | 📋 Open |
-| T3-003 | ui | Masonry gallery | Foto galerij in masonry grid layout | Feature | 🟡 Medium | 📋 Open |
-| T3-004 | ui | Stats dashboard | Afstand, duur, hoogtemeters, snelheid, moeilijkheid — uit GPX stats | Feature | 🔴 High | 📋 Open |
-| T3-005 | ui | Tips & info blocks | Praktische info + tips & waarschuwingen sectie | Feature | 🟡 Medium | 📋 Open |
-| T3-006 | ui | Weer-blok | Weerdata van de wandeldag tonen op routepagina: temperatuur, neerslag, wind, conditie. Nuttig voor planners. | Feature | 🟡 Medium | 📋 Open |
+| T3-001 | ui | Hero section | Fullscreen hero foto op route detail pagina. Gradient overlay + titel + badges. | Feature | 🔴 High | ✅ Done — sessie 05. |
+| T3-002 | ui | Story blocks | Blokken-editor in creator: tekst, foto (volledig breed), fotogrid (2 of 3 kolommen), link. Vrije volgorde. Rendered op route detail pagina. | Feature | 🔴 High | ✅ Done — sessie 05. |
+| T3-003 | ui | Galerij | Galerij sectie onderaan route pagina. Grid layout. Aparte sectie in creator. | Feature | 🟡 Medium | ✅ Done — sessie 05. |
+| T3-004 | ui | Stats dashboard | Afstand, duur, stijging, daling, gem. snelheid, hoogste/laagste punt op route detail pagina. | Feature | 🔴 High | ✅ Done — sessie 05. |
+| T3-005 | ui | Tips & info blocks | Tips sectie op route detail pagina. | Feature | 🟡 Medium | ✅ Done — sessie 05. |
+| T3-006 | ui | Weer-blok | Weerdata op route detail pagina: temperatuur, neerslag, wind, conditie. | Feature | 🟡 Medium | ✅ Done — sessie 05. |
 
 ---
 
@@ -80,8 +81,8 @@
 
 | ID | Tags | Taak | Omschrijving | Type | Prioriteit | Status |
 |----|------|------|--------------|------|-----------|--------|
-| T5-001 | performance | Lazy loading | Lazy load images en media content | Improvement | 🔴 High | 🔄 Gedeeltelijk |
-| T5-002 | performance | Image optimization | WebP via Cloudinary automatisch — afhankelijk van T0-007 | Improvement | 🔴 High | 🔄 Gedeeltelijk |
+| T5-001 | performance | Lazy loading | Lazy load images via `loading="lazy"` op alle route foto's. | Improvement | 🔴 High | ✅ Done — sessie 05. |
+| T5-002 | performance | Image optimization | WebP via Cloudinary f_auto. Transformaties w_1200/w_800/w_400 per context. Auto-fix in creator bij import. | Improvement | 🔴 High | ✅ Done — sessie 05. |
 | T5-003 | performance | Code splitting | Modulaire JS per feature (map, routes, ui) | Improvement | 🟡 Medium | 📋 Open |
 
 ---
@@ -90,11 +91,11 @@
 
 | ID | Tags | Taak | Omschrijving | Type | Prioriteit | Status |
 |----|------|------|--------------|------|-----------|--------|
-| T6-001 | cloud | Supabase auth | Auth systeem live. profiles tabel met role (gast/creator/admin). Login modal + admin dropdown. i18n vertaald. Supabase URL configuration correct. | Feature | 🟡 Medium | ✅ Done — sessie 04 (22-06-2026). |
+| T6-001 | cloud | Supabase auth | Auth systeem live. profiles tabel met role (gast/creator/admin). | Feature | 🟡 Medium | ✅ Done — sessie 04 (22-06-2026). |
 | T6-002 | cloud | Sync | Offline → cloud sync engine | Feature | 🟡 Medium | 🔮 Future |
-| T6-003 | cloud | Sharing | Shareable trail links | Feature | 🟡 Medium | 🔮 Future |
+| T6-003 | cloud | Sharing | Shareable trail links. Deel-knop op route detail pagina via Web Share API + clipboard fallback. | Feature | 🟡 Medium | ✅ Done — sessie 05. |
 | T6-004 | i18n, community | User-generated taal-content | Wandelverhalen in eigen taal. Vereist T6-001. | Feature | 🟡 Medium | 🔮 Future |
-| T6-005 | cloud, analytics | Analytics dashboard | Admin dashboard voor page_views data: populairste pagina's, terugkerende bezoekers, sessieduur. | Feature | 🟡 Medium | 📋 Open |
+| T6-005 | cloud, analytics | Analytics dashboard | Admin dashboard voor page_views data. | Feature | 🟡 Medium | 📋 Open |
 
 ---
 
@@ -102,9 +103,9 @@
 
 | ID | Tags | Taak | Omschrijving | Type | Prioriteit | Status |
 |----|------|------|--------------|------|-----------|--------|
-| T7-001 | print, ux | Print CSS routepagina | `@media print`: A4-formaat, kaart → statisch beeld, alle links actief, topbar + footer meegedrukt. WYSIWYG. | Feature | 🟡 Medium | 📋 Open |
-| T7-002 | print, ux | Print knop | Publieke "Print / Bewaar als PDF" knop op routepagina. Browser-native print-dialoog. | Feature | 🟡 Medium | 📋 Open |
-| T7-003 | print, ux | Planningsinformatie | Vervoer-links, parkeerinfo, startpunt-coördinaten, weerslink op routepagina. Bruikbaar voor wandelplanning. | Feature | 🟢 Low | 📋 Open |
+| T7-001 | print, ux | Print CSS routepagina | `@media print`: A4-formaat, kaart → statisch beeld, alle links actief. | Feature | 🟡 Medium | 📋 Open |
+| T7-002 | print, ux | Print knop | Print-knop aanwezig op route detail pagina via `window.print()`. | Feature | 🟡 Medium | ✅ Done — sessie 05. |
+| T7-003 | print, ux | Planningsinformatie | Vervoer-links, parkeerinfo, startpunt-coördinaten op routepagina. | Feature | 🟢 Low | 📋 Open |
 
 ---
 
@@ -134,36 +135,54 @@
 |----|------|------|--------------|------|--------|
 | TD-001 | cleanup | Legacy JS | Vermijden van globale variabelen in app.js | Tech Debt | 📋 Open |
 | TD-002 | cleanup | DOM coupling | HTML structuur te sterk gekoppeld aan JS selectors | Tech Debt | 📋 Open |
-| TD-003 | cleanup | Map logic | Leaflet logic nog niet modulair gescheiden | Tech Debt | 📋 Open |
+| TD-003 | cleanup | Map logic | Leaflet logic nog niet modulair gescheiden. Creator heeft eigen initLeafletMap(). Route detail heeft eigen implementatie. | Tech Debt | 📋 Open |
 | TD-004 | cleanup | app.js herzien | Herzien naar i18next-architectuur. | Tech Debt | ✅ Done — sessie 02 (20-06-2026) |
 | TD-005 | cleanup | localStorage prefix | `mtw_language` geïmplementeerd in `js/i18n.js` v1.2.0. | Tech Debt | ✅ Done — sessie 02 (20-06-2026) |
-| TD-006 | cleanup | Favicon toevoegen | Favicon `<link>` tags toegevoegd aan `creator.html` en `index.html`. Overige pagina's nog te doen bij aanmaak. | Tech Debt | 🔄 Gedeeltelijk — sessie 03 (21-06-2026) |
-| TD-007 | cleanup | i18n init centraliseren | i18nModule.init() gecentraliseerd in app.js v3.0.0. home.js en creator.js roepen dit niet meer apart aan. | Tech Debt | ✅ Done — sessie 04 (22-06-2026) |
+| TD-006 | cleanup | Favicon toevoegen | Favicon tags toegevoegd aan creator.html, route.html, wandelingen.html. | Tech Debt | ✅ Done — sessie 05 (25-06-2026) |
+| TD-007 | cleanup | i18n init centraliseren | i18nModule.init() gecentraliseerd in app.js v3.0.0. | Tech Debt | ✅ Done — sessie 04 (22-06-2026) |
 | TD-008 | cleanup | Supabase RLS policies | RLS policies correct ingesteld op profiles en page_views tabellen. | Tech Debt | ✅ Done — sessie 04 (22-06-2026) |
+| TD-009 | cleanup | Bestandsstructuur routes | Route JSON bestanden verplaatst naar `routes/`. routes.json verplaatst naar `routes/routes.json`. data/content/ map overbodig. | Tech Debt | ✅ Done — sessie 05 (25-06-2026) |
+| TD-010 | cleanup | Route IDs | Route IDs mogen geen spaties bevatten. Gebruik koppeltekens: `grenspark-kalmthout`, `kalmthoutse-heide`. | Tech Debt | ✅ Done — sessie 05 (25-06-2026) |
 
 ---
 
-## STANDAARD AFSPRAKEN (bijgewerkt sessie 04)
+## CREATOR BACKLOG (volgende sessie)
+
+| Item | Omschrijving |
+|------|-------------|
+| Route op kaart | GPX route tekenen op kaart in route.html (trackPoints beschikbaar in JSON maar nog niet gebruikt) |
+| Vervoersmiddelen | Boot en vliegtuig reeds toegevoegd. Eventueel uitbreiden. |
+| SAC-schaal verfijnen | Drempelwaarden controleren op basis van echte wandeldata |
+| OpenRunner integratie | Voorbeeld: https://www.openrunner.com/en/route-details/18416689 |
+
+---
+
+## STANDAARD AFSPRAKEN (bijgewerkt sessie 05)
 
 | Onderwerp | Afspraak |
 |-----------|---------|
-| **Script volgorde** | Altijd onderaan `<body>`: Eruda → Supabase SDK → i18next CDN → i18n.js → auth.js → topbar-auth.js → analytics.js → app.js → [pagina].js |
+| **Script volgorde** | Altijd onderaan `<body>`: Eruda → Supabase SDK → i18next CDN → i18n.js → auth.js → topbar-auth.js → analytics.js → app.js → [pagina].js → Leaflet vóór pagina.js indien kaart nodig |
 | **Eruda** | Niet verwijderen als aanwezig in een HTML pagina |
 | **CSS** | Altijd in `<head>` |
 | **Favicon** | Elke nieuwe pagina krijgt favicon tags na `<title>`, vóór CSS |
 | **Cache busting** | Versienummer toevoegen aan script tags bij elke deploy: `?v=x.x.x` |
 | **Rollen** | gast / creator / admin — via `role` kolom in profiles tabel |
 | **i18n namespaces** | common (altijd) + auth (altijd) + paginaspecifiek via app.js |
+| **Cloudinary URL's** | Hero: w_1200,f_auto · Galerij/blokken: w_800,f_auto · Thumbnail: w_400,f_auto |
+| **Route bestanden** | Volledige JSON in `routes/[id].json` · Overzicht in `routes/routes.json` |
+| **Route IDs** | Altijd lowercase met koppeltekens, geen spaties |
+| **Leaflet CDN** | `https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.min.js` (geen integrity check) |
 
 ---
 
 ## AANBEVOLEN VOLGORDE VOLGENDE SESSIE
 
-1. **T0-007** — Cloudinary account aanmaken + upload workflow documenteren
-2. **T1-005** — Eerste route aanmaken via creator.html
-3. **T1-002** — Route detail pagina (A4 + print-CSS)
-4. **T6-005** — Analytics dashboard voor admin
-5. **T1-007** — Route kaartpagina
+1. **T2-003** — GPX route tekenen op kaart in route.html
+2. **T1-007** — Route kaartpagina (apart tabblad)
+3. **T1-008** — Draft management (binnenkort badge)
+4. **T7-001** — Print CSS voor routepagina
+5. **T6-005** — Analytics dashboard voor admin
+6. **T4-001** — Filters op wandelingen.html
 
 ---
 
