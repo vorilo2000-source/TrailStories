@@ -25,7 +25,7 @@ function getRouteId() {
 async function loadRoute(id) {
   try {
     const basePath = window.getBasePath ? getBasePath() : "../";
-    const resp = await fetch(`${basePath}data/content/${id}.json`);
+    const resp = await fetch(`${basePath}routes/${id}.json`);
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
     return await resp.json();
   } catch (err) {
@@ -326,7 +326,7 @@ function getRouteId() {
 async function loadRoute(id) {
   try {
     const basePath = window.getBasePath ? getBasePath() : "../";
-    const resp = await fetch(`${basePath}data/content/${id}.json`);
+    const resp = await fetch(`${basePath}routes/${id}.json`);
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
     return await resp.json();
   } catch (err) {
