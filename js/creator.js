@@ -1176,7 +1176,7 @@ document.getElementById("btn-export-routes-entry").addEventListener("click", () 
     difficulty: els.inputDifficulty.value || null,
     tags: els.inputKeywords.value.split(",").map((k) => k.trim()).filter(Boolean),
     hero: thumbUrl,
-    content_json: `data/content/${id}.json`,
+    content_json: `routes/${id}.json`,
   };
 
   const blob = new Blob([JSON.stringify(entry, null, 2)], { type: "application/json" });
