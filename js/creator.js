@@ -1148,7 +1148,45 @@ function initLeafletMap(gpx) {
 }
 
 // -----------------------------------------------------------
-// HELPERS
+// ROUTES.JSON ENTRY EXPORT
+// -----------------------------------------------------------
+document.getElementById("btn-export-routes-entry").addEventListener("click", () => {
+  const id = els.inputRouteId.value.trim();
+  if (!id) {
+    showInlineError(els.inputRouteId, "Geef de route een ID (bestandsnaam).");
+    els.inputRouteId.focus();
+    return;
+  }
+
+  const heroUrl = els.inputHeroPhoto.value.trim();
+  // Thumbnail: w_400 ipv w_1200
+  const thumbUrl = heroUrl
+    ? heroUrl.replace("w_1200", "w_400")
+    : "";
+
+  const entry = {
+    id,
+    language: "nl",
+    name: els.inputTitle.value.trim() || id,
+    region: els.inputRegion.value.trim() || els.inputLocation.value.trim(),
+    date_walked: els.inputDate.value || null,
+    distance_km: state.gpx?.distance_km || 0,
+    duration_hours: state.gpx?.duration_hours || 0,
+    elevation_m: state.gpx?.elevation_up_m || 0,
+    difficulty: els.inputDifficulty.value || null,
+    tags: els.inputKeywords.value.split(",").map((k) => k.trim()).filter(Boolean),
+    hero: thumbUrl,
+    content_json: `data/content/${id}.json`,
+  };
+
+  const blob = new Blob([JSON.stringify(entry, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `${id}-routes-entry.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+});
 // -----------------------------------------------------------
 function showInlineError(inputEl, message) {
   inputEl.style.borderColor = "var(--color-hard)";
