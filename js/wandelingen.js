@@ -1,12 +1,13 @@
 // =======================================================
 // wandelingen.js — MyTrailWalks
 // Wandelingen overzicht pagina
+// v1.2.0: laadt routes via routes-index.json + individuele [id].json
 // v1.1.0: i18n via i18nModule (nl/en)
 // v1.0.0: initiële versie
 // =======================================================
 "use strict";
 
-const ROUTES_JSON_PATH = "routes/routes.json";
+const ROUTES_INDEX_PATH = "routes/routes-index.json";
 
 function t(key) {
   try { return i18nModule.t(`wandelingen:${key}`); } catch (_) { return key; }
@@ -32,11 +33,22 @@ const DIFFICULTY_LABELS = {
 // -----------------------------------------------------------
 async function loadRoutes() {
   try {
-    const resp = await fetch(ROUTES_JSON_PATH);
-    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-    const data = await resp.json();
-    // Filter alleen wandelingen (geen hikes, ritten, etc. later)
-    return data.filter((r) => !r._meta_version || true);
+    // Stap 1: laad de index
+    const indexResp = await fetch(ROUTES_INDEX_PATH);
+    if (!indexResp.ok) throw new Error(`Index HTTP ${indexResp.status}`);
+    const ids = await indexResp.json();
+
+    // Stap 2: laad elke route parallel
+    const results = await Promise.allSettled(
+      ids.map((id) => fetch(`routes/${id}.json`).then((r) => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json();
+      }))
+    );
+
+    return results
+      .filter((r) => r.status === "fulfilled")
+      .map((r) => r.value);
   } catch (err) {
     console.error("wandelingen.js: routes laden mislukt", err);
     return null;
@@ -47,22 +59,42 @@ async function loadRoutes() {
 // ROUTE KAARTJE AANMAKEN
 // -----------------------------------------------------------
 function createRouteTile(route) {
-  const a = document.createElement("a");
-  a.className = "route-tile";
-  a.href = `routes/route.html?id=${route.id}`;
-  a.setAttribute("role", "listitem");
-  a.setAttribute("aria-label", route.name);
+  const lang = (i18nModule?.language || "nl").substring(0, 2);
+
+  const title =
+    typeof route.title === "object"
+      ? route.title[lang] || route.title.nl || route.title.en || ""
+      : route.title || route.name || "";
+
+  const hero =
+    route.photos?.find((p) => p.role === "hero")?.url ||
+    route.photos?.[0]?.url ||
+    route.hero ||
+    null;
+
+  const stats = route.gpx_stats || {};
+
+  // Draft routes: niet klikbaar, toon badge
+  const isDraft = route.status === "draft";
+
+  const el = document.createElement(isDraft ? "div" : "a");
+  el.className = "route-tile" + (isDraft ? " route-tile--draft" : "");
+  if (!isDraft) {
+    el.href = `routes/route.html?id=${route.id}`;
+  }
+  el.setAttribute("role", "listitem");
+  el.setAttribute("aria-label", title);
 
   // Hero foto
-  const hero = document.createElement("div");
-  hero.className = "route-tile__hero";
-  if (route.hero) {
+  const heroEl = document.createElement("div");
+  heroEl.className = "route-tile__hero";
+  if (hero) {
     const img = document.createElement("img");
-    img.src = route.hero;
-    img.alt = route.name;
+    img.src = hero;
+    img.alt = title;
     img.loading = "lazy";
     img.onerror = () => img.remove();
-    hero.appendChild(img);
+    heroEl.appendChild(img);
   }
 
   // Moeilijkheid badge
@@ -70,22 +102,28 @@ function createRouteTile(route) {
     const badge = document.createElement("span");
     badge.className = "route-tile__difficulty-badge";
     badge.textContent = DIFFICULTY_LABELS[route.difficulty] || route.difficulty;
-    hero.appendChild(badge);
+    heroEl.appendChild(badge);
   }
 
-  a.appendChild(hero);
+  // Draft badge
+  if (isDraft) {
+    const draftBadge = document.createElement("span");
+    draftBadge.className = "route-tile__draft-badge";
+    draftBadge.textContent = "Binnenkort";
+    heroEl.appendChild(draftBadge);
+  }
+
+  el.appendChild(heroEl);
 
   // Inhoud
   const content = document.createElement("div");
   content.className = "route-tile__content";
 
-  // Naam
   const name = document.createElement("h2");
   name.className = "route-tile__name";
-  name.textContent = route.name;
+  name.textContent = title;
   content.appendChild(name);
 
-  // Regio
   if (route.region) {
     const region = document.createElement("p");
     region.className = "route-tile__region";
@@ -94,13 +132,13 @@ function createRouteTile(route) {
   }
 
   // Stats
-  const stats = document.createElement("div");
-  stats.className = "route-tile__stats";
+  const statsEl = document.createElement("div");
+  statsEl.className = "route-tile__stats";
 
   const statItems = [
-    { value: route.distance_km, unit: t("units.km"), label: t("stats.distance") },
-    { value: route.duration_hours, unit: t("units.hours"), label: t("stats.duration") },
-    { value: route.elevation_m, unit: t("units.meters"), label: t("stats.elevation") },
+    { value: stats.distance_km, unit: t("units.km"), label: t("stats.distance") },
+    { value: stats.duration_hours, unit: t("units.hours"), label: t("stats.duration") },
+    { value: stats.elevation_up_m, unit: t("units.meters"), label: t("stats.elevation") },
   ];
 
   statItems.forEach(({ value, unit, label }) => {
@@ -110,10 +148,10 @@ function createRouteTile(route) {
       <span class="stat-value">${value > 0 ? `${value}${unit}` : "—"}</span>
       <span class="stat-label">${label}</span>
     `;
-    stats.appendChild(stat);
+    statsEl.appendChild(stat);
   });
 
-  content.appendChild(stats);
+  content.appendChild(statsEl);
 
   // Tags
   if (route.tags?.length) {
@@ -128,8 +166,8 @@ function createRouteTile(route) {
     content.appendChild(tags);
   }
 
-  a.appendChild(content);
-  return a;
+  el.appendChild(content);
+  return el;
 }
 
 // -----------------------------------------------------------
@@ -146,14 +184,22 @@ function renderGrid(routes, gridEl) {
     return;
   }
 
+  // Sorteer: gepubliceerd eerst op datum, daarna drafts
+  const sorted = [...routes].sort((a, b) => {
+    if (a.status === "draft" && b.status !== "draft") return 1;
+    if (a.status !== "draft" && b.status === "draft") return -1;
+    return new Date(b.published_date || 0) - new Date(a.published_date || 0);
+  });
+
   const fragment = document.createDocumentFragment();
-  routes.forEach((route) => fragment.appendChild(createRouteTile(route)));
+  sorted.forEach((route) => fragment.appendChild(createRouteTile(route)));
   gridEl.appendChild(fragment);
 
-  // Aantal tonen
+  // Aantal tonen (enkel gepubliceerde)
   const countEl = document.getElementById("wandelingen-count");
   if (countEl) {
-    countEl.textContent = `${routes.length} wandeling${routes.length !== 1 ? "en" : ""}`;
+    const published = routes.filter((r) => r.status === "published").length;
+    countEl.textContent = `${published} wandeling${published !== 1 ? "en" : ""}`;
   }
 }
 
@@ -164,12 +210,10 @@ async function initWandelingen() {
   const gridEl = document.getElementById("routes-grid");
   if (!gridEl) return;
 
-  // Laad indicator
   gridEl.innerHTML = `<p class="routes-grid__status">${t("loading")}</p>`;
 
   await window.appReady;
 
-  // Paginatitel en heading
   try { document.title = t("pageTitle"); } catch (_) {}
   const heading = document.querySelector(".wandelingen-header__title");
   if (heading) heading.textContent = t("heading");
