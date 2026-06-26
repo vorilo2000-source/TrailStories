@@ -1,0 +1,62 @@
+{
+  "id": "Mano_del_Desierto",
+  "status": "draft",
+  "published_date": "2026-05-14",
+  "transport": [
+    "car"
+  ],
+  "title": {
+    "nl": "Mano del Desierto",
+    "en": ""
+  },
+  "location": "Antofagasta, Provincia de Antofagasta, Chili",
+  "region": "",
+  "difficulty": "T1",
+  "source_reference": "https://en.wikipedia.org/wiki/Mano_del_Desierto",
+  "tags": [
+    "Woestijn"
+  ],
+  "summary": {
+    "nl": "",
+    "en": ""
+  },
+  "story": {
+    "nl": "",
+    "en": ""
+  },
+  "story_blocks": [
+    {
+      "type": "photo-grid",
+      "cols": 2,
+      "photos": [
+        "https://res.cloudinary.com/dgzlcqdcc/image/upload/w_800,f_auto/v1782486916/IMG-0012-A_vqyii7.jpg",
+        "https://res.cloudinary.com/dgzlcqdcc/image/upload/w_800,f_auto/v1782486917/IMG-0013-A_vqtmmt.jpg",
+        "https://res.cloudinary.com/dgzlcqdcc/image/upload/w_800,f_auto/v1782487085/IMG-0008-A_bmbfo1.jpg"
+      ]
+    }
+  ],
+  "gallery": [],
+  "tips": {
+    "nl": "Neem zonnebrand en water mee.",
+    "en": ""
+  },
+  "photos": [
+    {
+      "url": "https://res.cloudinary.com/dgzlcqdcc/image/upload/w_1200,f_auto/v1782486776/IMG-0022-A_vwpxum.jpg",
+      "caption": ""
+    }
+  ],
+  "gpx_stats": {
+    "distance_km": 0.61,
+    "duration_hours": null,
+    "elevation_up_m": 10,
+    "elevation_down_m": 9,
+    "avg_speed_kmh": null,
+    "max_speed_kmh": 0,
+    "highest_point_m": 1125,
+    "lowest_point_m": 1117,
+    "start_lat": -24.15952,
+    "start_lon": -70.15114
+  },
+  "weather": null
+}
