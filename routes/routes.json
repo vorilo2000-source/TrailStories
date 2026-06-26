@@ -2,7 +2,7 @@
   {
     "_meta_version": "2.0.0",
     "_meta_note": "Taal-onafhankelijk overzicht-schema. Bevat ALLEEN velden die op de homepage grid getoond worden. Volledige route-content staat in routes/<id>.json.",
-    "id": "Grenspark-Kalmthout",
+    "id": "grenspark-kalmthout",
     "language": "nl",
     "name": "Grenspark noord <> Brasserie de Wolf",
     "region": "Grenspark Kalmthout",
@@ -16,9 +16,9 @@
     "content_json": "routes/grenspark-kalmthout.json"
   },
   {
-    "id": "Kalmthoutse-Heide"
+    "id": "kalmthoutse-heide",
     "language": "nl",
-    "name": "Kalmthoutse Heide -",
+    "name": "Kalmthoutse Heide",
     "region": "Kalmthout, Antwerpen, België",
     "date_walked": "2026-06-18",
     "distance_km": 6.9,
