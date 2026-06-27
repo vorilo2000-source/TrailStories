@@ -1,20 +1,6 @@
 /* ===========================================================
-   route.css — MyTrailWalks
-   Route detail pagina styling
-
-   Inhoudsopgave:
-   1.  Layout
-   2.  Hero
-   3.  Content wrapper
-   4.  Secties
-   5.  Stats grid
-   6.  Weerdata
-   7.  Verhaal blokken
-   8.  Tips
-   9.  Kaart
-   10. Vervoersmiddel
-   11. Galerij
-   12. Acties
+   route.css — MyTrailWalks v2.0.0
+   v2.0.0: 2-koloms lay-out, slideshow galerij
    =========================================================== */
 
 /* -----------------------------------------------------------
@@ -22,6 +8,28 @@
    ----------------------------------------------------------- */
 .route-layout {
   min-height: 100vh;
+}
+
+.route-content {
+  max-width: var(--content-max-width);
+  margin: 0 auto;
+  padding: var(--space-xl) var(--space-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xl);
+}
+
+.route-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-xl);
+  align-items: start;
+}
+
+.route-col {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
 }
 
 /* -----------------------------------------------------------
@@ -40,7 +48,6 @@
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
-  transition: opacity 0.3s ease;
 }
 
 .route-hero__overlay {
@@ -48,6 +55,13 @@
   inset: 0;
   background: linear-gradient(to top, rgba(0,0,0,0.65) 0%, rgba(0,0,0,0.1) 60%, transparent 100%);
   z-index: 1;
+}
+
+.route-hero__status {
+  position: absolute;
+  top: var(--space-md);
+  left: var(--space-md);
+  z-index: 3;
 }
 
 .route-hero__content {
@@ -90,7 +104,6 @@
   flex-wrap: wrap;
 }
 
-/* Badges in hero */
 .route-badge {
   display: inline-block;
   font-family: var(--font-mono);
@@ -99,27 +112,31 @@
   border-radius: 20px;
   background: rgba(255,255,255,0.15);
   color: var(--color-white);
-  backdrop-filter: blur(4px);
 }
 
 .route-badge--difficulty {
   background: rgba(44, 74, 59, 0.7);
 }
 
-/* -----------------------------------------------------------
-   3. CONTENT WRAPPER
-   ----------------------------------------------------------- */
-.route-content {
-  max-width: var(--content-narrow-width);
-  margin: 0 auto;
-  padding: var(--space-xl) var(--space-lg);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-xl);
+.route-status-badge {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  padding: 3px 10px;
+  border-radius: 20px;
+  color: var(--color-white);
+}
+
+.route-status-badge--draft {
+  background: rgba(140, 106, 79, 0.85);
+}
+
+.route-status-badge--final {
+  background: rgba(76, 122, 137, 0.85);
 }
 
 /* -----------------------------------------------------------
-   4. SECTIES
+   3. SECTIES
    ----------------------------------------------------------- */
 .route-section {
   display: flex;
@@ -128,20 +145,24 @@
 }
 
 .route-section__title {
-  font-size: var(--text-lg);
+  font-size: var(--text-base);
   font-weight: 500;
-  color: var(--color-forest-dark);
+  color: var(--color-charcoal-soft);
   margin: 0;
   padding-bottom: var(--space-sm);
   border-bottom: 1px solid var(--color-line);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: 11px;
+  font-family: var(--font-mono);
 }
 
 /* -----------------------------------------------------------
-   5. STATS GRID
+   4. STATS GRID
    ----------------------------------------------------------- */
 .route-stats {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  grid-template-columns: repeat(2, 1fr);
   gap: var(--space-sm);
 }
 
@@ -166,7 +187,7 @@
 }
 
 /* -----------------------------------------------------------
-   6. WEERDATA
+   5. WEERDATA
    ----------------------------------------------------------- */
 .route-weather {
   display: flex;
@@ -191,7 +212,72 @@
 }
 
 /* -----------------------------------------------------------
-   7. VERHAAL BLOKKEN
+   6. VERVOER
+   ----------------------------------------------------------- */
+.route-transport {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+}
+
+.route-transport__tag {
+  font-size: var(--text-sm);
+  padding: var(--space-xs) var(--space-md);
+  border-radius: 20px;
+  background: var(--color-cream);
+  border: 1px solid var(--color-line);
+  color: var(--color-charcoal-soft);
+}
+
+/* -----------------------------------------------------------
+   7. BRONVERMELDING
+   ----------------------------------------------------------- */
+.route-source__link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
+  color: var(--color-water);
+  font-size: var(--text-sm);
+  text-decoration: none;
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid rgba(76, 122, 137, 0.3);
+  border-radius: var(--radius-md);
+  background: rgba(76, 122, 137, 0.04);
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.route-source__link:hover {
+  background: rgba(76, 122, 137, 0.1);
+  border-color: rgba(76, 122, 137, 0.5);
+  text-decoration: none;
+}
+
+/* -----------------------------------------------------------
+   8. KAART
+   ----------------------------------------------------------- */
+.route-map {
+  height: 320px;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  border: 1px solid var(--color-line);
+}
+
+/* -----------------------------------------------------------
+   9. HOOGTEDIAGRAM PLACEHOLDER
+   ----------------------------------------------------------- */
+.route-elevation-placeholder {
+  height: 80px;
+  border-radius: var(--radius-md);
+  border: 1px dashed var(--color-line);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-charcoal-soft);
+  font-size: var(--text-sm);
+}
+
+/* -----------------------------------------------------------
+   10. VERHAAL
    ----------------------------------------------------------- */
 .route-story {
   display: flex;
@@ -211,10 +297,9 @@
   border-radius: var(--radius-md);
   display: block;
   object-fit: cover;
-  max-height: 480px;
+  max-height: 400px;
 }
 
-/* Foto grid — 2 of 3 kolommen */
 .route-story__grid {
   display: grid;
   gap: var(--space-sm);
@@ -228,7 +313,6 @@
   display: block;
 }
 
-/* Link blok */
 .route-story__link {
   display: inline-flex;
   align-items: center;
@@ -240,22 +324,17 @@
   border: 1px solid rgba(76, 122, 137, 0.3);
   border-radius: var(--radius-md);
   background: rgba(76, 122, 137, 0.04);
-  transition: background 0.15s ease, border-color 0.15s ease;
+  transition: background 0.15s ease;
   align-self: flex-start;
 }
 
 .route-story__link:hover {
   background: rgba(76, 122, 137, 0.1);
-  border-color: rgba(76, 122, 137, 0.5);
   text-decoration: none;
 }
 
-.route-story__link-icon {
-  font-size: 1rem;
-}
-
 /* -----------------------------------------------------------
-   8. TIPS
+   11. TIPS
    ----------------------------------------------------------- */
 .route-tips {
   background: rgba(140, 106, 79, 0.06);
@@ -272,43 +351,15 @@
 }
 
 /* -----------------------------------------------------------
-   9. KAART
+   12. FOTO GRID (verhaal rechterkolom)
    ----------------------------------------------------------- */
-.route-map {
-  height: 400px;
-  border-radius: var(--radius-md);
-  overflow: hidden;
-  border: 1px solid var(--color-line);
-}
-
-/* -----------------------------------------------------------
-   10. VERVOERSMIDDEL
-   ----------------------------------------------------------- */
-.route-transport {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-sm);
-}
-
-.route-transport__tag {
-  font-size: var(--text-sm);
-  padding: var(--space-xs) var(--space-md);
-  border-radius: 20px;
-  background: var(--color-cream);
-  border: 1px solid var(--color-line);
-  color: var(--color-charcoal-soft);
-}
-
-/* -----------------------------------------------------------
-   11. GALERIJ
-   ----------------------------------------------------------- */
-.route-gallery {
+.route-photo-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  grid-template-columns: repeat(2, 1fr);
   gap: var(--space-sm);
 }
 
-.route-gallery__photo {
+.route-photo-grid__img {
   width: 100%;
   aspect-ratio: 4/3;
   object-fit: cover;
@@ -318,12 +369,86 @@
   transition: opacity 0.15s ease;
 }
 
-.route-gallery__photo:hover {
-  opacity: 0.9;
+.route-photo-grid__img:hover {
+  opacity: 0.88;
 }
 
 /* -----------------------------------------------------------
-   12. ACTIES
+   13. SLIDESHOW GALERIJ
+   ----------------------------------------------------------- */
+.route-slideshow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  background: var(--color-cream);
+  border-radius: var(--radius-md);
+  padding: var(--space-md);
+}
+
+.route-slideshow__btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1px solid var(--color-line);
+  background: var(--color-white);
+  font-size: 1.4rem;
+  color: var(--color-charcoal-soft);
+  cursor: pointer;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s ease;
+}
+
+.route-slideshow__btn:hover {
+  background: var(--color-cream);
+}
+
+.route-slideshow__btn:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.route-slideshow__frame {
+  flex: 1;
+  aspect-ratio: 16/9;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: var(--color-line);
+}
+
+.route-slideshow__img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.route-slideshow__dots {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  margin-top: var(--space-sm);
+}
+
+.route-slideshow__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-line);
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  transition: background 0.15s ease;
+}
+
+.route-slideshow__dot--active {
+  background: var(--color-forest);
+}
+
+/* -----------------------------------------------------------
+   14. ACTIES
    ----------------------------------------------------------- */
 .route-actions {
   display: flex;
@@ -346,7 +471,7 @@
   background: var(--color-white);
   color: var(--color-charcoal-soft);
   cursor: pointer;
-  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+  transition: background 0.15s ease, border-color 0.15s ease;
 }
 
 .route-action-btn:hover {
@@ -355,10 +480,15 @@
   color: var(--color-charcoal);
 }
 
-/* Responsive */
-@media (max-width: 600px) {
+/* -----------------------------------------------------------
+   15. RESPONSIVE
+   ----------------------------------------------------------- */
+@media (max-width: 768px) {
   .route-hero {
     height: 280px;
+  }
+  .route-grid {
+    grid-template-columns: 1fr;
   }
   .route-content {
     padding: var(--space-lg) var(--space-md);
@@ -366,7 +496,7 @@
   .route-stats {
     grid-template-columns: repeat(2, 1fr);
   }
-  .route-gallery {
+  .route-photo-grid {
     grid-template-columns: repeat(2, 1fr);
   }
 }
