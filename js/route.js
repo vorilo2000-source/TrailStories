@@ -24,7 +24,7 @@ function getRouteId() {
 
 async function loadRoute(id) {
   try {
-    const resp = await fetch(`../${id}.json`);
+    const resp = await fetch(`../routes/${id}.json`);
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
     return await resp.json();
   } catch (err) {
