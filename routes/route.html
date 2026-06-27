@@ -1,7 +1,7 @@
-<!-- ======================= routes/route.html v1.1.0 =======================
+<!-- ======================= routes/route.html v2.0.0 =======================
      Route detail pagina — MyTrailWalks
-     v1.1.0: absolute paden + cache busters conform standaard pagina
-     v1.0.0: initiële versie
+     v2.0.0: nieuwe lay-out — 2-koloms grid, galerij slideshow
+     v1.1.0: absolute paden + cache busters
      ======================================================================= -->
 <!DOCTYPE html>
 <html lang="nl" id="html-root">
@@ -37,10 +37,11 @@
   <!-- Main -->
   <main id="main-content" class="route-layout">
 
-    <!-- Hero -->
+    <!-- 1. HERO -->
     <section class="route-hero" id="route-hero">
       <div class="route-hero__bg" id="route-hero-bg"></div>
       <div class="route-hero__overlay"></div>
+      <div class="route-hero__status" id="route-status-badge"></div>
       <div class="route-hero__content">
         <p class="route-hero__eyebrow" id="route-region"></p>
         <h1 class="route-hero__title" id="route-title">Laden…</h1>
@@ -49,53 +50,98 @@
       </div>
     </section>
 
-    <!-- Inhoud -->
+    <!-- 2. TWEE-KOLOMS: DATA + KAART -->
     <div class="route-content">
+      <div class="route-grid">
 
-      <!-- Stats -->
-      <section class="route-section" id="section-stats">
-        <div class="route-stats" id="route-stats"></div>
-      </section>
+        <!-- Links: stats, weer, vervoer, bronvermelding -->
+        <div class="route-col route-col--left">
 
-      <!-- Weer -->
-      <section class="route-section" id="section-weather" hidden>
-        <div class="route-weather" id="route-weather"></div>
-      </section>
+          <section class="route-section" id="section-stats">
+            <div class="route-stats" id="route-stats"></div>
+          </section>
 
-      <!-- Verhaal -->
-      <section class="route-section" id="section-story" hidden>
-        <div class="route-story" id="route-story"></div>
-      </section>
+          <section class="route-section" id="section-weather" hidden>
+            <div class="route-weather" id="route-weather"></div>
+          </section>
 
-      <!-- Tips -->
-      <section class="route-section" id="section-tips" hidden>
-        <h2 class="route-section__title">Tips</h2>
-        <div class="route-tips" id="route-tips"></div>
-      </section>
+          <section class="route-section" id="section-transport" hidden>
+            <h2 class="route-section__title">Vervoer</h2>
+            <div class="route-transport" id="route-transport"></div>
+          </section>
 
-      <!-- Kaart -->
-      <section class="route-section" id="section-map" hidden>
-        <h2 class="route-section__title">Route op kaart</h2>
-        <div id="route-map" class="route-map"></div>
-      </section>
+          <section class="route-section" id="section-source" hidden>
+            <h2 class="route-section__title">Bronvermelding</h2>
+            <div id="route-source"></div>
+          </section>
 
-      <!-- Vervoersmiddel -->
-      <section class="route-section" id="section-transport" hidden>
-        <h2 class="route-section__title">Vervoersmiddel</h2>
-        <div class="route-transport" id="route-transport"></div>
-      </section>
+        </div>
 
-      <!-- Galerij -->
+        <!-- Rechts: kaart + hoogtediagram placeholder -->
+        <div class="route-col route-col--right">
+
+          <section class="route-section" id="section-map" hidden>
+            <h2 class="route-section__title">Route op kaart</h2>
+            <div id="route-map" class="route-map"></div>
+            <button class="route-action-btn" id="btn-open-map" hidden>
+              <span>🗺</span> Route openen
+            </button>
+          </section>
+
+          <section class="route-section route-section--elevation" id="section-elevation" hidden>
+            <h2 class="route-section__title">Hoogteprofiel</h2>
+            <div class="route-elevation-placeholder" id="route-elevation">
+              <!-- Hoogtediagram — later -->
+            </div>
+          </section>
+
+        </div>
+      </div>
+
+      <!-- 3. TWEE-KOLOMS: VERHAAL + FOTO GRID -->
+      <div class="route-grid route-grid--story">
+
+        <!-- Links: verhaal + tips -->
+        <div class="route-col route-col--left">
+
+          <section class="route-section" id="section-story" hidden>
+            <h2 class="route-section__title">Verhaal</h2>
+            <div class="route-story" id="route-story"></div>
+          </section>
+
+          <section class="route-section" id="section-tips" hidden>
+            <h2 class="route-section__title">Tips</h2>
+            <div class="route-tips" id="route-tips"></div>
+          </section>
+
+        </div>
+
+        <!-- Rechts: foto grid -->
+        <div class="route-col route-col--right">
+
+          <section class="route-section" id="section-photos" hidden>
+            <h2 class="route-section__title">Foto's</h2>
+            <div class="route-photo-grid" id="route-photo-grid"></div>
+          </section>
+
+        </div>
+      </div>
+
+      <!-- 4. GALERIJ SLIDESHOW -->
       <section class="route-section" id="section-gallery" hidden>
-        <h2 class="route-section__title">Foto's</h2>
-        <div class="route-gallery" id="route-gallery"></div>
+        <h2 class="route-section__title">Galerij</h2>
+        <div class="route-slideshow">
+          <button class="route-slideshow__btn route-slideshow__btn--prev" id="slideshow-prev" aria-label="Vorige foto">&#8249;</button>
+          <div class="route-slideshow__frame">
+            <img class="route-slideshow__img" id="slideshow-img" src="" alt="">
+          </div>
+          <button class="route-slideshow__btn route-slideshow__btn--next" id="slideshow-next" aria-label="Volgende foto">&#8250;</button>
+        </div>
+        <div class="route-slideshow__dots" id="slideshow-dots"></div>
       </section>
 
-      <!-- Acties -->
+      <!-- 5. ACTIES -->
       <div class="route-actions">
-        <button class="route-action-btn" id="btn-open-map" hidden>
-          <span>🗺</span> Route openen
-        </button>
         <button class="route-action-btn" onclick="window.print()">
           <span>🖨</span> Afdrukken
         </button>
@@ -126,8 +172,8 @@
   <script src="/MyTrailWalks/js/auth.js?v=1.1.0"></script>
   <script src="/MyTrailWalks/js/topbar-auth.js?v=2.1.0"></script>
   <script src="/MyTrailWalks/js/analytics.js?v=1.1.0"></script>
-  <script src="/MyTrailWalks/js/app.js?v=3.2.0"></script>
-  <script src="/MyTrailWalks/js/route.js?v=1.2.0"></script>
+  <script src="/MyTrailWalks/js/app.js?v=3.3.0"></script>
+  <script src="/MyTrailWalks/js/route.js?v=2.0.0"></script>
 
 </body>
 </html>
