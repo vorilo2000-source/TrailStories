@@ -100,12 +100,12 @@ function createRouteTile(route) {
     heroEl.appendChild(badge);
   }
 
-  if (isDraft) {
-    const draftBadge = document.createElement("span");
-    draftBadge.className = "route-tile__draft-badge";
-    draftBadge.textContent = "Binnenkort";
-    heroEl.appendChild(draftBadge);
-  }
+  const statusBadge = document.createElement("span");
+  statusBadge.className = isDraft
+    ? "route-tile__status-badge route-tile__status-badge--draft"
+    : "route-tile__status-badge route-tile__status-badge--final";
+  statusBadge.textContent = isDraft ? "Draft" : "Final";
+  heroEl.appendChild(statusBadge);
 
   el.appendChild(heroEl);
 
