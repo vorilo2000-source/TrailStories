@@ -205,8 +205,35 @@ function renderMap(route) {
       fillOpacity: 1,
     }).addTo(map).bindPopup(t("map.startPoint"));
 
-    map.setView([g.start_lat, g.start_lon], 13);
+    if (g.track_points?.length > 1) {
+      const polyline = L.polyline(g.track_points, {
+        color: "#2C4A3B",
+        weight: 3,
+        opacity: 0.85,
+      }).addTo(map);
+      map.fitBounds(polyline.getBounds(), { padding: [16, 16] });
+    } else {
+      map.setView([g.start_lat, g.start_lon], 13);
+    }
   }, 50);
+}
+
+function renderSource(route) {
+  if (!route.source_reference) return;
+  const section = document.createElement("section");
+  section.className = "route-section";
+  const title = document.createElement("h2");
+  title.className = "route-section__title";
+  title.textContent = t("sections.source") || "Bronvermelding";
+  const a = document.createElement("a");
+  a.href = route.source_reference;
+  a.target = "_blank";
+  a.rel = "noopener noreferrer";
+  a.className = "route-story__link";
+  a.innerHTML = `<span class="route-story__link-icon">🔗</span><span>${route.source_reference}</span>`;
+  section.appendChild(title);
+  section.appendChild(a);
+  $("route-tips").closest(".route-content").appendChild(section);
 }
 
 function renderTransport(route) {
@@ -266,4 +293,5 @@ window.appReady.then(async () => {
   renderMap(route);
   renderTransport(route);
   renderGallery(route);
+  renderSource(route);
 });
