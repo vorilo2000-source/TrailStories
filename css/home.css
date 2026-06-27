@@ -266,7 +266,6 @@
   border-radius: 20px;
   background: rgba(44, 74, 59, 0.85);
   color: var(--color-white);
-  backdrop-filter: blur(4px);
 }
 
 .route-tile__content {
