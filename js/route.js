@@ -1,9 +1,8 @@
 // =======================================================
 // route.js — MyTrailWalks
 // Route detail pagina: laadt JSON en rendert route
+// v2.0.0: nieuwe lay-out — 2-koloms, slideshow galerij, status badge
 // v1.2.0: dubbele code verwijderd, schone versie
-// v1.1.0: i18n via i18nModule (nl/en)
-// v1.0.0: initiële versie
 // =======================================================
 "use strict";
 
@@ -24,7 +23,7 @@ function getRouteId() {
 
 async function loadRoute(id) {
   try {
-    const resp = await fetch(`../routes/${id}.json`);
+    const resp = await fetch(`/MyTrailWalks/routes/${id}.json`);
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
     return await resp.json();
   } catch (err) {
@@ -33,6 +32,9 @@ async function loadRoute(id) {
   }
 }
 
+// -----------------------------------------------------------
+// RENDER HERO
+// -----------------------------------------------------------
 function renderHero(route) {
   const lang = i18nModule?.language?.substring(0, 2) || "nl";
   const title = typeof route.title === "object"
@@ -52,6 +54,17 @@ function renderHero(route) {
     heroBg.classList.add("has-photo");
   }
 
+  // Status badge
+  const statusEl = $("route-status-badge");
+  if (statusEl && route.status) {
+    const isDraft = route.status === "draft";
+    const badge = document.createElement("span");
+    badge.className = isDraft ? "route-status-badge route-status-badge--draft" : "route-status-badge route-status-badge--final";
+    badge.textContent = isDraft ? "Draft" : "Final";
+    statusEl.appendChild(badge);
+  }
+
+  // Moeilijkheid + datum badges
   const badges = $("route-badges");
   if (route.difficulty) {
     const badge = document.createElement("span");
@@ -70,6 +83,9 @@ function renderHero(route) {
   }
 }
 
+// -----------------------------------------------------------
+// RENDER STATS
+// -----------------------------------------------------------
 function renderStats(route) {
   const g = route.gpx_stats;
   if (!g) return;
@@ -82,6 +98,7 @@ function renderStats(route) {
     { value: g.avg_speed_kmh ? `${g.avg_speed_kmh} km/u` : "—", label: t("stats.avgSpeed") },
     { value: g.highest_point_m ? `${g.highest_point_m} m` : "—", label: t("stats.highestPoint") },
     { value: g.lowest_point_m ? `${g.lowest_point_m} m` : "—", label: t("stats.lowestPoint") },
+    { value: g.max_speed_kmh ? `${g.max_speed_kmh} km/u` : "—", label: t("stats.maxSpeed") },
   ];
 
   const container = $("route-stats");
@@ -93,14 +110,17 @@ function renderStats(route) {
   });
 }
 
+// -----------------------------------------------------------
+// RENDER WEER
+// -----------------------------------------------------------
 function renderWeather(route) {
   const w = route.weather;
   if (!w) return;
 
   const items = [
     { icon: "🌡", text: `${w.temperature_min ?? "—"}° – ${w.temperature_max ?? "—"}°C` },
-    { icon: "💧", text: `${w.precipitation_mm ?? "—"} ${t("weather.precipitation")}` },
-    { icon: "🍃", text: `${w.wind_kmh ?? "—"} ${t("weather.wind")}` },
+    { icon: "💧", text: `${w.precipitation_mm ?? "—"} mm` },
+    { icon: "🍃", text: `${w.wind_kmh ?? "—"} km/u` },
   ];
   if (w.condition) items.push({ icon: "☀️", text: w.condition });
 
@@ -115,6 +135,82 @@ function renderWeather(route) {
   $("section-weather").hidden = false;
 }
 
+// -----------------------------------------------------------
+// RENDER VERVOER
+// -----------------------------------------------------------
+function renderTransport(route) {
+  if (!route.transport?.length) return;
+  const container = $("route-transport");
+  const labels = {
+    walking: "🚶 Wandelen", cycling: "🚴 Fietsen", motorcycle: "🏍 Motor",
+    car: "🚗 Auto", train: "🚆 Trein", bus: "🚌 Bus", boat: "⛵ Boot", plane: "✈️ Vliegtuig",
+  };
+  route.transport.forEach((tr) => {
+    const span = document.createElement("span");
+    span.className = "route-transport__tag";
+    span.textContent = labels[tr] || tr;
+    container.appendChild(span);
+  });
+  $("section-transport").hidden = false;
+}
+
+// -----------------------------------------------------------
+// RENDER BRONVERMELDING
+// -----------------------------------------------------------
+function renderSource(route) {
+  if (!route.source_reference) return;
+  const container = $("route-source");
+  const a = document.createElement("a");
+  a.className = "route-source__link";
+  a.href = route.source_reference;
+  a.target = "_blank";
+  a.rel = "noopener noreferrer";
+  a.innerHTML = `<span>🔗</span><span>${route.source_reference.replace(/^https?:\/\//, "")}</span>`;
+  container.appendChild(a);
+  $("section-source").hidden = false;
+}
+
+// -----------------------------------------------------------
+// RENDER KAART
+// -----------------------------------------------------------
+function renderMap(route) {
+  const g = route.gpx_stats;
+  if (!g?.start_lat || !g?.start_lon) return;
+
+  $("section-map").hidden = false;
+
+  setTimeout(() => {
+    const map = L.map("route-map", { zoomControl: true, scrollWheelZoom: false });
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution: "© OpenStreetMap contributors",
+      maxZoom: 18,
+    }).addTo(map);
+
+    const btnMap = $("btn-open-map");
+    if (btnMap) {
+      btnMap.hidden = false;
+      btnMap.innerHTML = `<span>🗺</span> Route openen`;
+      btnMap.addEventListener("click", () =>
+        window.open(`https://www.openstreetmap.org/#map=13/${g.start_lat}/${g.start_lon}`, "_blank")
+      );
+    }
+
+    L.circleMarker([g.start_lat, g.start_lon], {
+      radius: 7, fillColor: "#2C4A3B", color: "#fff", weight: 2, fillOpacity: 1,
+    }).addTo(map).bindPopup("Startpunt");
+
+    if (g.track_points?.length > 1) {
+      const polyline = L.polyline(g.track_points, { color: "#2C4A3B", weight: 3, opacity: 0.85 }).addTo(map);
+      map.fitBounds(polyline.getBounds(), { padding: [16, 16] });
+    } else {
+      map.setView([g.start_lat, g.start_lon], 13);
+    }
+  }, 50);
+}
+
+// -----------------------------------------------------------
+// RENDER VERHAAL
+// -----------------------------------------------------------
 function renderStory(route) {
   const blocks = route.story_blocks;
   if (!blocks?.length) return;
@@ -155,7 +251,7 @@ function renderStory(route) {
       a.href = block.url;
       a.target = "_blank";
       a.rel = "noopener noreferrer";
-      a.innerHTML = `<span class="route-story__link-icon">🔗</span><span>${block.name || block.url}</span>`;
+      a.innerHTML = `<span>🔗</span><span>${block.name || block.url}</span>`;
       container.appendChild(a);
     }
   });
@@ -163,6 +259,9 @@ function renderStory(route) {
   $("section-story").hidden = false;
 }
 
+// -----------------------------------------------------------
+// RENDER TIPS
+// -----------------------------------------------------------
 function renderTips(route) {
   const lang = i18nModule?.language?.substring(0, 2) || "nl";
   const tips = route.tips?.[lang] || route.tips?.nl || route.tips;
@@ -175,110 +274,87 @@ function renderTips(route) {
   $("section-tips").hidden = false;
 }
 
-function renderMap(route) {
-  const g = route.gpx_stats;
-  if (!g?.start_lat || !g?.start_lon) return;
+// -----------------------------------------------------------
+// RENDER FOTO GRID (rechterkolom verhaal)
+// -----------------------------------------------------------
+function renderPhotoGrid(route) {
+  const photos = route.photos?.slice(1) || [];
+  if (!photos.length) return;
 
-  $("section-map").hidden = false;
-
-  setTimeout(() => {
-    const map = L.map("route-map", { zoomControl: true, scrollWheelZoom: false });
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      attribution: "© OpenStreetMap contributors",
-      maxZoom: 18,
-    }).addTo(map);
-
-    const btnMap = $("btn-open-map");
-    if (btnMap) {
-      btnMap.hidden = false;
-      btnMap.innerHTML = `<span>🗺</span> ${t("actions.openMap")}`;
-      btnMap.addEventListener("click", () =>
-        window.open(`https://www.openstreetmap.org/#map=13/${g.start_lat}/${g.start_lon}`, "_blank")
-      );
-    }
-
-    L.circleMarker([g.start_lat, g.start_lon], {
-      radius: 7,
-      fillColor: "#2C4A3B",
-      color: "#fff",
-      weight: 2,
-      fillOpacity: 1,
-    }).addTo(map).bindPopup(t("map.startPoint"));
-
-    if (g.track_points?.length > 1) {
-      const polyline = L.polyline(g.track_points, {
-        color: "#2C4A3B",
-        weight: 3,
-        opacity: 0.85,
-      }).addTo(map);
-      map.fitBounds(polyline.getBounds(), { padding: [16, 16] });
-    } else {
-      map.setView([g.start_lat, g.start_lon], 13);
-    }
-  }, 50);
-}
-
-function renderSource(route) {
-  if (!route.source_reference) return;
-  const section = document.createElement("section");
-  section.className = "route-section";
-  const title = document.createElement("h2");
-  title.className = "route-section__title";
-  title.textContent = t("sections.source") || "Bronvermelding";
-  const a = document.createElement("a");
-  a.href = route.source_reference;
-  a.target = "_blank";
-  a.rel = "noopener noreferrer";
-  a.className = "route-story__link";
-  a.innerHTML = `<span class="route-story__link-icon">🔗</span><span>${route.source_reference}</span>`;
-  section.appendChild(title);
-  section.appendChild(a);
-  $("route-tips").closest(".route-content").appendChild(section);
-}
-
-function renderTransport(route) {
-  if (!route.transport?.length) return;
-  const container = $("route-transport");
-  route.transport.forEach((tr) => {
-    const span = document.createElement("span");
-    span.className = "route-transport__tag";
-    span.textContent = t(`transport.${tr}`);
-    container.appendChild(span);
-  });
-  $("section-transport").hidden = false;
-}
-
-function renderGallery(route) {
-  if (!route.gallery?.length) return;
-  const container = $("route-gallery");
-  route.gallery.forEach((photo) => {
+  const container = $("route-photo-grid");
+  photos.forEach((photo) => {
     if (!photo.url) return;
     const img = document.createElement("img");
-    img.className = "route-gallery__photo";
+    img.className = "route-photo-grid__img";
     img.src = photo.url;
-    img.alt = "";
+    img.alt = photo.caption || "";
     img.loading = "lazy";
     img.onerror = () => img.remove();
     container.appendChild(img);
   });
+
+  $("section-photos").hidden = false;
+}
+
+// -----------------------------------------------------------
+// RENDER SLIDESHOW GALERIJ
+// -----------------------------------------------------------
+function renderGallery(route) {
+  if (!route.gallery?.length) return;
+
+  const photos = route.gallery.filter((p) => p.url);
+  if (!photos.length) return;
+
+  let current = 0;
+  const img = $("slideshow-img");
+  const dotsEl = $("slideshow-dots");
+  const prevBtn = $("slideshow-prev");
+  const nextBtn = $("slideshow-next");
+
+  function show(idx) {
+    current = idx;
+    img.src = photos[idx].url;
+    img.alt = photos[idx].caption || "";
+    dotsEl.querySelectorAll(".route-slideshow__dot").forEach((d, i) => {
+      d.classList.toggle("route-slideshow__dot--active", i === idx);
+    });
+    prevBtn.disabled = idx === 0;
+    nextBtn.disabled = idx === photos.length - 1;
+  }
+
+  // Dots aanmaken
+  photos.forEach((_, i) => {
+    const dot = document.createElement("button");
+    dot.className = "route-slideshow__dot";
+    dot.setAttribute("aria-label", `Foto ${i + 1}`);
+    dot.addEventListener("click", () => show(i));
+    dotsEl.appendChild(dot);
+  });
+
+  prevBtn.addEventListener("click", () => { if (current > 0) show(current - 1); });
+  nextBtn.addEventListener("click", () => { if (current < photos.length - 1) show(current + 1); });
+
+  show(0);
   $("section-gallery").hidden = false;
 }
 
+// -----------------------------------------------------------
+// DELEN
+// -----------------------------------------------------------
 $("btn-share").addEventListener("click", async () => {
   if (navigator.share) {
     try { await navigator.share({ title: document.title, url: window.location.href }); } catch (_) {}
   } else {
     await navigator.clipboard.writeText(window.location.href);
-    $("btn-share").textContent = t("actions.copied");
-    setTimeout(() => { $("btn-share").innerHTML = `<span>🔗</span> ${t("actions.share")}`; }, 2000);
+    $("btn-share").textContent = "✓ Gekopieerd!";
+    setTimeout(() => { $("btn-share").innerHTML = `<span>🔗</span> Delen`; }, 2000);
   }
 });
 
+// -----------------------------------------------------------
+// INIT
+// -----------------------------------------------------------
 window.appReady.then(async () => {
-  $("btn-share").innerHTML = `<span>🔗</span> ${t("actions.share")}`;
-  const printBtn = document.querySelector("[onclick='window.print()']");
-  if (printBtn) printBtn.innerHTML = `<span>🖨</span> ${t("actions.print")}`;
-
   const id = getRouteId();
   if (!id) { $("route-title").textContent = t("notFound"); return; }
 
@@ -288,10 +364,11 @@ window.appReady.then(async () => {
   renderHero(route);
   renderStats(route);
   renderWeather(route);
+  renderTransport(route);
+  renderSource(route);
+  renderMap(route);
   renderStory(route);
   renderTips(route);
-  renderMap(route);
-  renderTransport(route);
+  renderPhotoGrid(route);
   renderGallery(route);
-  renderSource(route);
 });
