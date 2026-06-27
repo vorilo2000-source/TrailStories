@@ -54,10 +54,12 @@
   margin: 0 auto;
 }
 
-/* -----------------------------------------------------------
+css/* -----------------------------------------------------------
    ROUTE TILE UITBREIDINGEN
    ----------------------------------------------------------- */
-
+.route-tile {
+  position: relative;
+}
 /* Hero container met positie voor badge */
 .route-tile__hero {
   position: relative;
