@@ -76,11 +76,10 @@ async function initApp() {
   // 2. i18nReady resolven — topbar-auth.js wacht hierop
   if (window._i18nResolve) window._i18nResolve();
 
-  // 3. Componenten injecteren
-  await Promise.all([
-    injectComponent("topbar-placeholder", `${base}components/topbar.html`),
-    injectComponent("footer-placeholder", `${base}components/footer.html`),
-  ]);
+ // 3. Componenten injecteren
+await injectComponent("topbar-placeholder", `${base}components/topbar.html`);
+await injectComponent("footer-placeholder", `${base}components/footer.html`);
+
 
   // 4. Vertalingen toepassen + nav links
   i18nModule.applyTranslations();
