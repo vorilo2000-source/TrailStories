@@ -1,41 +1,26 @@
-<!-- ======================= routes/[id].html v1.0.0 =======================
+<!-- ======================= routes/route.html v1.1.0 =======================
      Route detail pagina — MyTrailWalks
-     Laadt een route JSON en rendert de volledige route pagina.
-
-     Secties:
-       1. Hero (fullscreen foto + titel + moeilijkheid)
-       2. Stats (afstand, duur, stijging, snelheid, datum)
-       3. Weerdata
-       4. Verhaal blokken (tekst, foto, fotogrid, links)
-       5. Tips
-       6. Kaart (Leaflet met route)
-       7. Vervoersmiddel
-       8. Galerij (foto grid onderaan)
-       9. Acties (kaart openen, afdrukken, delen)
-
-     Gebruik: routes/kalmthoutse-heide.html?id=kalmthoutse-heide
-     Of: routes/index.html?id=kalmthoutse-heide
-
+     v1.1.0: absolute paden + cache busters conform standaard pagina
      v1.0.0: initiële versie
      ======================================================================= -->
 <!DOCTYPE html>
-<html lang="nl">
+<html lang="nl" id="html-root">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Route — MyTrailWalks</title>
 
   <!-- Favicon -->
-  <link rel="icon" type="image/x-icon" href="../assets/images/favicon.ico">
-  <link rel="icon" type="image/png" sizes="32x32" href="../assets/images/favicon-32x32.png">
-  <link rel="apple-touch-icon" sizes="180x180" href="../assets/images/favicon-180x180.png">
-  <link rel="icon" type="image/png" sizes="192x192" href="../assets/images/favicon-192x192.png">
+  <link rel="icon" type="image/x-icon" href="/MyTrailWalks/assets/images/favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="/MyTrailWalks/assets/images/favicon-32x32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/MyTrailWalks/assets/images/favicon-180x180.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="/MyTrailWalks/assets/images/favicon-192x192.png">
 
   <!-- CSS -->
-  <link rel="stylesheet" href="../css/main.css">
-  <link rel="stylesheet" href="../css/topbar.css">
-  <link rel="stylesheet" href="../css/footer.css">
-  <link rel="stylesheet" href="../css/route.css">
+  <link rel="stylesheet" href="/MyTrailWalks/css/main.css">
+  <link rel="stylesheet" href="/MyTrailWalks/css/topbar.css">
+  <link rel="stylesheet" href="/MyTrailWalks/css/footer.css">
+  <link rel="stylesheet" href="/MyTrailWalks/css/route.css">
 
   <!-- Leaflet -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.min.css" crossorigin="">
@@ -47,7 +32,7 @@
   <script>eruda.init();</script>
 
   <!-- Topbar -->
-  <div id="topbar-placeholder" aria-hidden="true"></div>
+  <div id="topbar-placeholder" class="topbar-placeholder" aria-hidden="true"></div>
 
   <!-- Main -->
   <main id="main-content" class="route-layout">
@@ -123,7 +108,7 @@
   </main>
 
   <!-- Footer -->
-  <div id="footer-placeholder" aria-hidden="true"></div>
+  <div id="footer-placeholder" class="footer-placeholder" aria-hidden="true"></div>
 
   <!-- Supabase SDK -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
@@ -137,12 +122,12 @@
   <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.min.js"></script>
 
   <!-- Scripts -->
-  <script src="../js/i18n.js"></script>
-  <script src="../js/auth.js"></script>
-  <script src="../js/topbar-auth.js"></script>
-  <script src="../js/analytics.js"></script>
-  <script src="../js/app.js"></script>
-  <script src="../js/route.js?v=1.2.0"></script>
+  <script src="/MyTrailWalks/js/i18n.js"></script>
+  <script src="/MyTrailWalks/js/auth.js?v=1.1.0"></script>
+  <script src="/MyTrailWalks/js/topbar-auth.js?v=2.1.0"></script>
+  <script src="/MyTrailWalks/js/analytics.js?v=1.1.0"></script>
+  <script src="/MyTrailWalks/js/app.js?v=3.2.0"></script>
+  <script src="/MyTrailWalks/js/route.js?v=1.2.0"></script>
 
 </body>
 </html>
