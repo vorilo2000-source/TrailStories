@@ -2,7 +2,7 @@
   "_meta": {
     "language": "en",
     "namespace": "common",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "note": "Shared UI texts for all pages. English fallback — mirrors nl/common.json exactly."
   },
   "nav": {
@@ -14,6 +14,11 @@
   "footer": {
     "tagline": "Personal trail stories from the field.",
     "copyright": "MyTrailWalks"
+  },
+  "construction": {
+    "title": "Coming soon",
+    "text": "This page is currently under development. Check back later for more.",
+    "back": "← Back to home"
   },
   "route": {
     "distance": "Distance",
