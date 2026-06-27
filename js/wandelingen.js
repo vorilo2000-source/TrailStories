@@ -8,9 +8,6 @@
 // =======================================================
 "use strict";
 
-function getBasePath() {
-  return "./";
-}
 
 function t(key) {
   try { return i18nModule.t(`wandelingen:${key}`); } catch (_) { return key; }
@@ -29,8 +26,7 @@ const DIFFICULTY_LABELS = {
 };
 
 async function loadRoutes() {
-  const base = getBasePath();
-  const indexUrl = `${base}routes/routes-index.json`;
+  const indexUrl = "routes/routes-index.json";
   console.log("wandelingen.js: index laden van", indexUrl);
 
   try {
@@ -41,7 +37,7 @@ async function loadRoutes() {
 
     const results = await Promise.allSettled(
       ids.map((id) => {
-        const url = `${base}routes/${id}.json`;
+        const url = `routes/${id}.json`;
         console.log("wandelingen.js: route laden van", url);
         return fetch(url).then((r) => {
           if (!r.ok) throw new Error(`HTTP ${r.status} voor ${url}`);
