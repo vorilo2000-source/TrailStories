@@ -226,7 +226,6 @@ function loadJsonIntoForm(data) {
       ...g,
       startLat: g.start_lat || null,
       startLon: g.start_lon || null,
-      trackPoints: g.track_points || null,
     };
   }
 
