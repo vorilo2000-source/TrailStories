@@ -61,7 +61,9 @@ const els = {
   weatherBlock: $("weather-block"),
   inputTitle: $("input-title"),
   inputDifficulty: $("input-difficulty"),
+  inputCountry: $("input-country"),
   inputRegion: $("input-region"),
+  inputPlace: $("input-place"),
   inputSource: $("input-source"),
   inputHeroPhoto: $("input-hero-photo"),
   inputKeywords: $("input-keywords"),
@@ -136,7 +138,9 @@ function loadJsonIntoForm(data) {
   // Datum & locatie
   if (data.published_date) els.inputDate.value = data.published_date;
   if (data.location) els.inputLocation.value = data.location;
+  if (data.country && els.inputCountry) els.inputCountry.value = data.country;
   if (data.region) els.inputRegion.value = data.region;
+  if (data.place && els.inputPlace) els.inputPlace.value = data.place;
 
   // Route info
   if (data.title?.nl) els.inputTitle.value = data.title.nl;
@@ -666,12 +670,19 @@ async function fetchLocationName(lat, lon) {
     const resp = await fetch(url, { headers: { "Accept-Language": "nl" } });
     const data = await resp.json();
     const addr = data.address || {};
-    const location = [
-      addr.village || addr.town || addr.city || addr.municipality,
-      addr.county || addr.state_district,
-      addr.country,
-    ].filter(Boolean).join(", ");
+
+    // Opgesplitste velden
+    const country = addr.country || "";
+    const region = addr.state || addr.province || addr.county || addr.state_district || "";
+    const place = addr.village || addr.town || addr.city || addr.municipality || "";
+
+    // Samengestelde locatiestring
+    const location = [place, region, country].filter(Boolean).join(", ");
+
     if (location) els.inputLocation.value = location;
+    if (country && els.inputCountry) els.inputCountry.value = country;
+    if (region && els.inputRegion) els.inputRegion.value = region;
+    if (place && els.inputPlace) els.inputPlace.value = place;
   } catch (err) {
     console.warn("Nominatim fout:", err);
   } finally {
@@ -953,7 +964,9 @@ function buildRouteJson() {
     transport: transport.length ? transport : null,
     title: { nl: els.inputTitle.value.trim(), en: "" },
     location: els.inputLocation.value.trim(),
+    country: els.inputCountry ? els.inputCountry.value.trim() : "",
     region: els.inputRegion.value.trim(),
+    place: els.inputPlace ? els.inputPlace.value.trim() : "",
     difficulty: els.inputDifficulty.value || null,
     source_reference: els.inputSource.value.trim() || null,
     tags: els.inputKeywords.value.split(",").map((k) => k.trim()).filter(Boolean),
@@ -980,7 +993,6 @@ function buildRouteJson() {
       lowest_point_m: state.gpx.lowest_point_m,
       start_lat: state.gpx.startLat || null,
       start_lon: state.gpx.startLon || null,
-      track_points: state.gpx.trackPoints || null,
     } : null,
     weather: state.weather ? {
       date: state.weather.date,
@@ -1210,4 +1222,4 @@ function showInlineError(inputEl, message) {
 window.appReady.then(() => {
   renderBlockEditor();
   updatePreview();
-}); 
+});
