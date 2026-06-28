@@ -1,30 +1,28 @@
 // =======================================================
 // wandelingen.js — MyTrailWalks
 // Wandelingen overzicht pagina
-// v1.3.0: betere foutafhandeling + draft zichtbaar
+// v1.3.0: filters — moeilijkheid, land, regio, plaats
 // v1.2.0: laadt routes via routes-index.json + individuele [id].json
 // v1.1.0: i18n via i18nModule (nl/en)
-// v1.0.0: initiële versie
 // =======================================================
 "use strict";
-
 
 function t(key) {
   try { return i18nModule.t(`wandelingen:${key}`); } catch (_) { return key; }
 }
 
 const DIFFICULTY_LABELS = {
-  T1: "T1 — Wandelen",
-  T2: "T2 — Bergwandeling",
-  T3: "T3 — Veeleisend",
-  T4: "T4 — Alpien",
-  T5: "T5 — Veeleisend alpien",
-  T6: "T6 — Moeilijk alpien",
-  easy: "Gemakkelijk",
-  medium: "Gemiddeld",
-  hard: "Zwaar",
+  T1: "T1 — Wandelen", T2: "T2 — Bergwandeling", T3: "T3 — Veeleisend",
+  T4: "T4 — Alpien", T5: "T5 — Veeleisend alpien", T6: "T6 — Moeilijk alpien",
+  easy: "Gemakkelijk", medium: "Gemiddeld", hard: "Zwaar",
 };
 
+// Alle geladen routes bewaren voor filtering
+let allRoutes = [];
+
+// -----------------------------------------------------------
+// ROUTES LADEN
+// -----------------------------------------------------------
 async function loadRoutes() {
   const indexUrl = "routes/routes-index.json";
   console.log("wandelingen.js: index laden van", indexUrl);
@@ -50,28 +48,78 @@ async function loadRoutes() {
       if (r.status === "rejected") console.warn(`wandelingen.js: route ${ids[i]} mislukt:`, r.reason);
     });
 
-    return results
-      .filter((r) => r.status === "fulfilled")
-      .map((r) => r.value);
+    return results.filter((r) => r.status === "fulfilled").map((r) => r.value);
   } catch (err) {
     console.error("wandelingen.js: laden mislukt", err);
     return null;
   }
 }
 
+// -----------------------------------------------------------
+// FILTERS VULLEN
+// -----------------------------------------------------------
+function populateFilters(routes) {
+  const countries = [...new Set(routes.map((r) => r.country).filter(Boolean))].sort();
+  const regions = [...new Set(routes.map((r) => r.region).filter(Boolean))].sort();
+  const places = [...new Set(routes.map((r) => r.place).filter(Boolean))].sort();
+
+  fillSelect("filter-country", countries);
+  fillSelect("filter-region", regions);
+  fillSelect("filter-place", places);
+}
+
+function fillSelect(id, values) {
+  const sel = document.getElementById(id);
+  if (!sel) return;
+  values.forEach((val) => {
+    const opt = document.createElement("option");
+    opt.value = val;
+    opt.textContent = val;
+    sel.appendChild(opt);
+  });
+}
+
+// -----------------------------------------------------------
+// FILTER LOGICA
+// -----------------------------------------------------------
+function getActiveFilters() {
+  return {
+    difficulty: document.getElementById("filter-difficulty")?.value || "",
+    country: document.getElementById("filter-country")?.value || "",
+    region: document.getElementById("filter-region")?.value || "",
+    place: document.getElementById("filter-place")?.value || "",
+  };
+}
+
+function applyFilters() {
+  const { difficulty, country, region, place } = getActiveFilters();
+  const gridEl = document.getElementById("routes-grid");
+
+  const filtered = allRoutes.filter((route) => {
+    if (difficulty && route.difficulty !== difficulty) return false;
+    if (country && route.country !== country) return false;
+    if (region && route.region !== region) return false;
+    if (place && route.place !== place) return false;
+    return true;
+  });
+
+  renderGrid(filtered, gridEl);
+}
+
+// -----------------------------------------------------------
+// ROUTE KAARTJE
+// -----------------------------------------------------------
 function createRouteTile(route) {
   const lang = (i18nModule?.language || "nl").substring(0, 2);
 
-  const title =
-    typeof route.title === "object"
-      ? route.title[lang] || route.title.nl || route.title.en || ""
-      : route.title || route.name || "";
+  const title = typeof route.title === "object"
+    ? route.title[lang] || route.title.nl || route.title.en || ""
+    : route.title || route.name || "";
 
-  const hero =
-    route.photos?.find((p) => p.role === "hero")?.url ||
-    route.photos?.[0]?.url ||
-    route.hero ||
-    null;
+  const hero = route.photos?.find((p) => p.role === "hero")?.url
+    || route.photos?.[0]?.url
+    || route.hero
+    || null;
 
   const stats = route.gpx_stats || {};
   const isDraft = route.status === "draft";
@@ -101,7 +149,9 @@ function createRouteTile(route) {
   }
 
   const statusBadge = document.createElement("span");
-  statusBadge.className = isDraft ? "route-tile__status-badge route-tile__status-badge--draft" : "route-tile__status-badge route-tile__status-badge--final";
+  statusBadge.className = isDraft
+    ? "route-tile__status-badge route-tile__status-badge--draft"
+    : "route-tile__status-badge route-tile__status-badge--final";
   statusBadge.textContent = isDraft ? "Draft" : "Final";
   heroEl.appendChild(statusBadge);
 
@@ -115,10 +165,10 @@ function createRouteTile(route) {
   name.textContent = title;
   content.appendChild(name);
 
-  if (route.region) {
+  if (route.place || route.region) {
     const region = document.createElement("p");
     region.className = "route-tile__region";
-    region.textContent = route.region;
+    region.textContent = [route.place, route.region].filter(Boolean).join(", ");
     content.appendChild(region);
   }
 
@@ -157,6 +207,9 @@ function createRouteTile(route) {
   return el;
 }
 
+// -----------------------------------------------------------
+// GRID RENDEREN
+// -----------------------------------------------------------
 function renderGrid(routes, gridEl) {
   gridEl.innerHTML = "";
 
@@ -165,6 +218,7 @@ function renderGrid(routes, gridEl) {
     p.className = "routes-grid__status";
     p.textContent = t("empty");
     gridEl.appendChild(p);
+    updateCount(0);
     return;
   }
 
@@ -178,13 +232,17 @@ function renderGrid(routes, gridEl) {
   sorted.forEach((route) => fragment.appendChild(createRouteTile(route)));
   gridEl.appendChild(fragment);
 
-  const countEl = document.getElementById("wandelingen-count");
-  if (countEl) {
-    const published = routes.filter((r) => r.status === "published").length;
-    countEl.textContent = `${published} wandeling${published !== 1 ? "en" : ""}`;
-  }
+  updateCount(routes.filter((r) => r.status === "published").length);
 }
 
+function updateCount(n) {
+  const countEl = document.getElementById("wandelingen-count");
+  if (countEl) countEl.textContent = `${n} wandeling${n !== 1 ? "en" : ""}`;
+}
+
+// -----------------------------------------------------------
+// INIT
+// -----------------------------------------------------------
 async function initWandelingen() {
   const gridEl = document.getElementById("routes-grid");
   if (!gridEl) return;
@@ -203,7 +261,22 @@ async function initWandelingen() {
     return;
   }
 
+  allRoutes = routes;
+  populateFilters(routes);
   renderGrid(routes, gridEl);
+
+  // Filter events
+  ["filter-difficulty", "filter-country", "filter-region", "filter-place"].forEach((id) => {
+    document.getElementById(id)?.addEventListener("change", applyFilters);
+  });
+
+  document.getElementById("filter-reset")?.addEventListener("click", () => {
+    ["filter-difficulty", "filter-country", "filter-region", "filter-place"].forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) el.value = "";
+    });
+    renderGrid(allRoutes, gridEl);
+  });
 }
 
 document.addEventListener("DOMContentLoaded", initWandelingen);
