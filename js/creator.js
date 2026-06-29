@@ -1,6 +1,7 @@
 // =======================================================
 // creator.js — MyTrailWalks
 // Route creator: GPX parse, weer, locatie, AI, JSON export
+// v2.1.0: GPX raw embed in JSON export + herstel bij import
 // v2.0.0: visuele preview, blokken-editor, JSON import
 // v1.2.0: geen eigen i18n init (app.js doet dit centraal)
 // =======================================================
@@ -14,9 +15,10 @@ const state = {
   apiKey: null,
   apiKeyConfirmed: false,
   gpx: null,
+  gpxRaw: null,       // Ruwe GPX-tekst (string) — opgeslagen bij upload, mee-geëxporteerd in JSON
   weather: null,
-  storyBlocks: [], // [{ type: 'text'|'photo'|'photo-grid'|'link', value, cols?, name?, url? }]
-  galleryPhotos: [], // [{ url: string }] — galerij onderaan de pagina
+  storyBlocks: [],    // [{ type: 'text'|'photo'|'photo-grid'|'link', value, cols?, name?, url? }]
+  galleryPhotos: [],  // [{ url: string }] — galerij onderaan de pagina
 };
 
 // -----------------------------------------------------------
@@ -58,7 +60,6 @@ const els = {
   wPrecip: $("w-precip"),
   wWind: $("w-wind"),
   inputWeatherCondition: $("input-weather-condition"),
-  weatherBlock: $("weather-block"),
   inputTitle: $("input-title"),
   inputDifficulty: $("input-difficulty"),
   inputCountry: $("input-country"),
@@ -130,6 +131,11 @@ els.jsonImportInput.addEventListener("change", () => {
   els.jsonImportInput.value = "";
 });
 
+/**
+ * Laad een route-JSON object volledig in het formulier.
+ * Ondersteunt gpx_raw (v2.1+) en gpx_stats (v2.0 legacy).
+ * @param {object} data - Geparsed JSON object
+ */
 function loadJsonIntoForm(data) {
   // Route ID & status
   if (data.id) els.inputRouteId.value = data.id;
@@ -196,38 +202,50 @@ function loadJsonIntoForm(data) {
   if (data.weather) {
     try {
       state.weather = { ...data.weather };
-      if (els.wTempMin) els.wTempMin.textContent = data.weather.temperature_min !== null ? `${data.weather.temperature_min}°C` : "—";
-      if (els.wTempMax) els.wTempMax.textContent = data.weather.temperature_max !== null ? `${data.weather.temperature_max}°C` : "—";
-      if (els.wPrecip) els.wPrecip.textContent = data.weather.precipitation_mm !== null ? `${data.weather.precipitation_mm} mm` : "—";
-      if (els.wWind) els.wWind.textContent = data.weather.wind_kmh !== null ? `${data.weather.wind_kmh} km/u` : "—";
-      if (data.weather.condition && els.inputWeatherCondition) els.inputWeatherCondition.value = data.weather.condition;
+      if (els.wTempMin)
+        els.wTempMin.textContent =
+          data.weather.temperature_min !== null ? `${data.weather.temperature_min}°C` : "—";
+      if (els.wTempMax)
+        els.wTempMax.textContent =
+          data.weather.temperature_max !== null ? `${data.weather.temperature_max}°C` : "—";
+      if (els.wPrecip)
+        els.wPrecip.textContent =
+          data.weather.precipitation_mm !== null ? `${data.weather.precipitation_mm} mm` : "—";
+      if (els.wWind)
+        els.wWind.textContent =
+          data.weather.wind_kmh !== null ? `${data.weather.wind_kmh} km/u` : "—";
+      if (data.weather.condition && els.inputWeatherCondition)
+        els.inputWeatherCondition.value = data.weather.condition;
       if (els.weatherBlock) els.weatherBlock.hidden = false;
     } catch (err) {
       console.warn("Weerdata inladen fout (niet kritiek):", err);
     }
   }
 
-  // GPX stats (read-only invullen als er geen GPX geladen wordt)
-  if (data.gpx_stats && !state.gpx) {
-    const g = data.gpx_stats;
-    els.statDistance.textContent = g.distance_km ? `${g.distance_km} km` : "—";
-    els.statDuration.textContent = g.duration_hours ? `${g.duration_hours} u` : "—";
-    els.statEleUp.textContent = g.elevation_up_m ? `+${g.elevation_up_m} m` : "—";
-    els.statEleDown.textContent = g.elevation_down_m ? `-${g.elevation_down_m} m` : "—";
-    els.statHighest.textContent = g.highest_point_m ? `${g.highest_point_m} m` : "—";
-    els.statLowest.textContent = g.lowest_point_m ? `${g.lowest_point_m} m` : "—";
-    els.statAvgSpeed.textContent = g.avg_speed_kmh ? `${g.avg_speed_kmh} km/u` : "—";
-    els.statMaxSpeed.textContent = g.max_speed_kmh ? `${g.max_speed_kmh} km/u` : "—";
-    els.gpxDropZone.hidden = true;
-    els.gpxStats.hidden = false;
-    els.gpxStatus.textContent = "✓ Uit JSON";
-    // Coördinaten overnemen voor kaart
-    state.gpx = {
-      ...g,
-      startLat: g.start_lat || null,
-      startLon: g.start_lon || null,
-      trackPoints: g.track_points || null,
-    };
+  // -------------------------------------------------------
+  // GPX herstel — twee scenario's:
+  //   A) gpx_raw aanwezig → volledig herstel via parseGpx (v2.1+)
+  //   B) alleen gpx_stats  → read-only stats tonen (v2.0 legacy)
+  // -------------------------------------------------------
+  if (data.gpx_raw) {
+    // Scenario A: volledige GPX tekst beschikbaar in JSON
+    console.info("[creator] gpx_raw gevonden — GPX volledig herstellen.");
+    state.gpxRaw = data.gpx_raw;
+
+    const gpxData = parseGpx(data.gpx_raw);
+    if (gpxData) {
+      state.gpx = gpxData;
+      displayGpxStats(gpxData);
+      els.gpxStatus.textContent = "✓ Uit JSON (GPX aanwezig)";
+    } else {
+      // gpx_raw aanwezig maar niet parseerbaar → fallback naar stats
+      console.warn("[creator] gpx_raw kon niet worden geparsed — fallback naar gpx_stats.");
+      _loadGpxStatsOnly(data.gpx_stats);
+    }
+  } else if (data.gpx_stats && !state.gpx) {
+    // Scenario B: geen gpx_raw, alleen berekende stats (oudere exports)
+    console.info("[creator] Geen gpx_raw — gpx_stats laden als read-only.");
+    _loadGpxStatsOnly(data.gpx_stats);
   }
 
   // Galerij
@@ -238,6 +256,34 @@ function loadJsonIntoForm(data) {
 
   renderBlockEditor();
   updatePreview();
+}
+
+/**
+ * Laad gpx_stats als read-only weergave (geen trackpunten beschikbaar).
+ * Wordt gebruikt bij import van oudere JSON zonder gpx_raw veld.
+ * @param {object} g - gpx_stats object uit JSON
+ */
+function _loadGpxStatsOnly(g) {
+  if (!g) return;
+  els.statDistance.textContent = g.distance_km ? `${g.distance_km} km` : "—";
+  els.statDuration.textContent = g.duration_hours ? `${g.duration_hours} u` : "—";
+  els.statEleUp.textContent = g.elevation_up_m ? `+${g.elevation_up_m} m` : "—";
+  els.statEleDown.textContent = g.elevation_down_m ? `-${g.elevation_down_m} m` : "—";
+  els.statHighest.textContent = g.highest_point_m ? `${g.highest_point_m} m` : "—";
+  els.statLowest.textContent = g.lowest_point_m ? `${g.lowest_point_m} m` : "—";
+  els.statAvgSpeed.textContent = g.avg_speed_kmh ? `${g.avg_speed_kmh} km/u` : "—";
+  els.statMaxSpeed.textContent = g.max_speed_kmh ? `${g.max_speed_kmh} km/u` : "—";
+  els.gpxDropZone.hidden = true;
+  els.gpxStats.hidden = false;
+  els.gpxStatus.textContent = "✓ Uit JSON";
+
+  // Minimale state voor kaart en difficulty berekening
+  state.gpx = {
+    ...g,
+    startLat: g.start_lat || null,
+    startLon: g.start_lon || null,
+    trackPoints: g.track_points || null,
+  };
 }
 
 // -----------------------------------------------------------
@@ -510,8 +556,10 @@ els.gpxFileInput.addEventListener("change", () => {
   if (file) handleGpxFile(file);
 });
 
+// GPX reset — wist ook de opgeslagen raw tekst
 els.gpxResetBtn.addEventListener("click", () => {
   state.gpx = null;
+  state.gpxRaw = null;      // Wis ook de ruwe GPX-tekst
   els.gpxStats.hidden = true;
   els.gpxDropZone.hidden = false;
   els.gpxStatus.textContent = "";
@@ -519,6 +567,11 @@ els.gpxResetBtn.addEventListener("click", () => {
   updatePreview();
 });
 
+/**
+ * Verwerk een GPX File object.
+ * Slaat de ruwe tekst op in state.gpxRaw voor later gebruik in JSON export.
+ * @param {File} file - Het .gpx bestand van de gebruiker
+ */
 function handleGpxFile(file) {
   if (!file.name.endsWith(".gpx")) {
     alert("Enkel .gpx bestanden worden ondersteund.");
@@ -526,6 +579,9 @@ function handleGpxFile(file) {
   }
   const reader = new FileReader();
   reader.onload = (e) => {
+    // Sla ruwe GPX-tekst op — wordt mee-geëxporteerd in JSON (veld: gpx_raw)
+    state.gpxRaw = e.target.result;
+
     const gpxData = parseGpx(e.target.result);
     if (!gpxData) {
       alert("GPX-bestand kon niet worden gelezen. Controleer het bestand.");
@@ -547,6 +603,8 @@ function handleGpxFile(file) {
 
 // -----------------------------------------------------------
 // GPX PARSER
+// Ondersteunt GPX 1.1 van OsmAnd en Open GPX Tracker (iOS)
+// Beide schrijven standaard trkpt/ele/time — geen extensions nodig
 // -----------------------------------------------------------
 function parseGpx(xmlText) {
   try {
@@ -672,12 +730,9 @@ async function fetchLocationName(lat, lon) {
     const data = await resp.json();
     const addr = data.address || {};
 
-    // Opgesplitste velden
     const country = addr.country || "";
     const region = addr.state || addr.province || addr.county || addr.state_district || "";
     const place = addr.village || addr.town || addr.city || addr.municipality || "";
-
-    // Samengestelde locatiestring
     const location = [place, region, country].filter(Boolean).join(", ");
 
     if (location) els.inputLocation.value = location;
@@ -747,7 +802,7 @@ els.btnFetchWeather.addEventListener("click", fetchWeather);
 els.btnRefetchWeather.addEventListener("click", fetchWeather);
 
 // -----------------------------------------------------------
-// MOEILIJKHEID BEREKENEN
+// MOEILIJKHEID BEREKENEN (SAC-wandelschaal T1-T6)
 // -----------------------------------------------------------
 function calculateDifficulty() {
   const gpx = state.gpx;
@@ -755,21 +810,14 @@ function calculateDifficulty() {
   if (!gpx) return null;
 
   let score = 0;
-
-  // Afstand: 1 punt per km
   if (gpx.distance_km) score += gpx.distance_km;
-
-  // Stijging: 1 punt per 100m
   if (gpx.elevation_up_m) score += gpx.elevation_up_m / 100;
-
-  // Weer
   if (weather) {
     if (weather.temperature_max >= 25) score += 2;
     if (weather.precipitation_mm >= 5) score += 2;
     if (weather.wind_kmh >= 30) score += 1;
   }
 
-  // SAC-wandelschaal T1–T6
   if (score <= 5)  return "T1";
   if (score <= 10) return "T2";
   if (score <= 16) return "T3";
@@ -781,7 +829,6 @@ function calculateDifficulty() {
 function applyCalculatedDifficulty() {
   const difficulty = calculateDifficulty();
   if (!difficulty) return;
-  // Alleen invullen als gebruiker nog niets gekozen heeft
   if (!els.inputDifficulty.value) {
     els.inputDifficulty.value = difficulty;
     updatePreview();
@@ -790,14 +837,11 @@ function applyCalculatedDifficulty() {
 
 // -----------------------------------------------------------
 // CLOUDINARY URL AUTO-FIX
-// Voegt automatisch w_1200,f_auto toe aan hero-foto URL
-// en w_800,f_auto aan foto-blok URLs
 // -----------------------------------------------------------
 function fixCloudinaryUrl(url, transform = "w_1200,f_auto") {
   if (!url) return url;
   if (!url.includes("res.cloudinary.com")) return url;
   if (url.includes(transform)) return url;
-  // Transformatie invoegen na /upload/
   return url.replace("/upload/", `/upload/${transform}/`);
 }
 
@@ -812,7 +856,7 @@ els.inputHeroPhoto.addEventListener("blur", () => {
 els.inputHeroPhoto.addEventListener("input", () => {
   updatePreview();
 });
-// -----------------------------------------------------------
+
 els.inputIntro.addEventListener("input", () => {
   els.introCount.textContent = `${els.inputIntro.value.length}/160`;
   updatePreview();
@@ -831,20 +875,12 @@ function updatePreview() {
   const gpx = state.gpx;
   const weather = state.weather;
 
-  // Titel
   $("rp-title").textContent = title || "Wandeling zonder titel";
-
-  // Locatie
   $("rp-location").textContent = location || "Locatie onbekend";
-
-  // Samenvatting
   $("rp-summary").textContent = summary;
   $("rp-summary").hidden = !summary;
-
-  // Status badge
   $("rp-status-badge").textContent = status || "draft";
 
-  // Hero foto
   const heroImg = $("rp-hero-img");
   const heroPlaceholder = $("rp-hero-placeholder");
   if (heroUrl) {
@@ -856,36 +892,31 @@ function updatePreview() {
     heroPlaceholder.hidden = false;
   }
 
-  // Stats
   $("rp-distance").textContent = gpx?.distance_km ? `${gpx.distance_km} km` : "—";
   $("rp-duration").textContent = gpx?.duration_hours ? `${gpx.duration_hours} u` : "—";
   $("rp-elevation").textContent = gpx?.elevation_up_m ? `+${gpx.elevation_up_m} m` : "—";
   $("rp-avg-speed").textContent = gpx?.avg_speed_kmh ? `${gpx.avg_speed_kmh} km/u` : "—";
 
   const diffLabels = {
-    T1: "T1 — Wandelen",
-    T2: "T2 — Bergwandeling",
-    T3: "T3 — Veeleisend",
-    T4: "T4 — Alpien",
-    T5: "T5 — Veeleisend alpien",
-    T6: "T6 — Moeilijk alpien",
+    T1: "T1 — Wandelen", T2: "T2 — Bergwandeling", T3: "T3 — Veeleisend",
+    T4: "T4 — Alpien", T5: "T5 — Veeleisend alpien", T6: "T6 — Moeilijk alpien",
   };
   $("rp-difficulty").textContent = diffLabels[difficulty] || "—";
 
-  // Weer
   const weatherEl = $("rp-weather");
   if (weather) {
     $("rp-w-temp").innerHTML = `<span class="rp-weather__icon">🌡</span> ${weather.temperature_min ?? "—"}° – ${weather.temperature_max ?? "—"}°C`;
     $("rp-w-precip").innerHTML = `<span class="rp-weather__icon">💧</span> ${weather.precipitation_mm ?? "—"} mm`;
     $("rp-w-wind").innerHTML = `<span class="rp-weather__icon">🍃</span> ${weather.wind_kmh ?? "—"} km/u`;
-    const dateStr = weather.date ? new Date(weather.date).toLocaleDateString("nl-BE", { day: "numeric", month: "long", year: "numeric" }) : "—";
+    const dateStr = weather.date
+      ? new Date(weather.date).toLocaleDateString("nl-BE", { day: "numeric", month: "long", year: "numeric" })
+      : "—";
     $("rp-w-date").innerHTML = `<span class="rp-weather__icon">📅</span> ${dateStr}`;
     weatherEl.hidden = false;
   } else {
     weatherEl.hidden = true;
   }
 
-  // Verhaal blokken preview
   const storyEl = $("rp-story");
   storyEl.innerHTML = "";
   state.storyBlocks.forEach((block) => {
@@ -904,29 +935,21 @@ function updatePreview() {
     }
   });
 
-  // Kaart via Leaflet — toont route als lijn + startmarker
   const mapEl = $("rp-map");
   if (gpx?.startLat && gpx?.startLon) {
     mapEl.hidden = false;
     const mapFrame = $("rp-map-frame");
-
-    // Container aanmaken als die er nog niet is
     if (!mapFrame.querySelector("#leaflet-preview-map")) {
       mapFrame.innerHTML = `<div id="leaflet-preview-map" style="width:100%;height:200px;"></div>`;
     }
-
-    // setTimeout zodat de DOM de container heeft gerenderd voor Leaflet start
     setTimeout(() => {
-      if (window.L) {
-        initLeafletMap(gpx);
-      }
+      if (window.L) initLeafletMap(gpx);
     }, 50);
   } else {
     mapEl.hidden = true;
   }
 }
 
-// Live preview bijwerken bij alle inputs
 document.querySelectorAll(".input").forEach((el) => {
   el.addEventListener("input", updatePreview);
   el.addEventListener("change", updatePreview);
@@ -934,29 +957,29 @@ document.querySelectorAll(".input").forEach((el) => {
 
 // -----------------------------------------------------------
 // JSON EXPORT
+// Exporteert de volledige route als JSON, inclusief gpx_raw
+// als een GPX-bestand geladen was tijdens deze sessie.
 // -----------------------------------------------------------
 function buildRouteJson() {
   const id = els.inputRouteId.value.trim() || "nieuwe-route";
 
-  // Foto's: hero altijd eerste
   const allPhotos = [];
   if (els.inputHeroPhoto.value.trim()) {
     allPhotos.push({ url: els.inputHeroPhoto.value.trim(), caption: "" });
   }
 
-  // Verhaal als blokken + tekst samengevoegd voor achterwaartse compatibiliteit
   const storyText = state.storyBlocks
     .filter((b) => b.type === "text" && b.value.trim())
     .map((b) => b.value.trim())
     .join("\n\n");
 
-  // Foto's uit blokken toevoegen aan photos array
   state.storyBlocks
     .filter((b) => b.type === "photo" && b.value.trim())
     .forEach((b) => allPhotos.push({ url: b.value.trim(), caption: "" }));
 
-  // Vervoersmiddel
-  const transport = Array.from(document.querySelectorAll("#transport-select input:checked")).map((el) => el.value);
+  const transport = Array.from(
+    document.querySelectorAll("#transport-select input:checked")
+  ).map((el) => el.value);
 
   return {
     id,
@@ -973,37 +996,51 @@ function buildRouteJson() {
     tags: els.inputKeywords.value.split(",").map((k) => k.trim()).filter(Boolean),
     summary: { nl: els.inputIntro.value.trim(), en: "" },
     story: { nl: storyText, en: "" },
-    story_blocks: state.storyBlocks.filter((b) => b.type === "text" ? b.value.trim() : true).map((b) => {
-      if (b.type === "text") return { type: b.type, value: b.value.trim() };
-      if (b.type === "photo") return { type: b.type, value: b.value.trim() };
-      if (b.type === "photo-grid") return { type: b.type, cols: b.cols, photos: b.photos.filter(Boolean) };
-      if (b.type === "link") return { type: b.type, name: b.name.trim(), url: b.url.trim() };
-      return b;
-    }),
+    story_blocks: state.storyBlocks
+      .filter((b) => (b.type === "text" ? b.value.trim() : true))
+      .map((b) => {
+        if (b.type === "text") return { type: b.type, value: b.value.trim() };
+        if (b.type === "photo") return { type: b.type, value: b.value.trim() };
+        if (b.type === "photo-grid")
+          return { type: b.type, cols: b.cols, photos: b.photos.filter(Boolean) };
+        if (b.type === "link")
+          return { type: b.type, name: b.name.trim(), url: b.url.trim() };
+        return b;
+      }),
     gallery: state.galleryPhotos.filter((p) => p.url).map((p) => ({ url: p.url })),
     tips: { nl: els.inputTips.value.trim(), en: "" },
     photos: allPhotos,
-    gpx_stats: state.gpx ? {
-      distance_km: state.gpx.distance_km,
-      duration_hours: state.gpx.duration_hours,
-      elevation_up_m: state.gpx.elevation_up_m,
-      elevation_down_m: state.gpx.elevation_down_m,
-      avg_speed_kmh: state.gpx.avg_speed_kmh,
-      max_speed_kmh: state.gpx.max_speed_kmh,
-      highest_point_m: state.gpx.highest_point_m,
-      lowest_point_m: state.gpx.lowest_point_m,
-      start_lat: state.gpx.startLat || null,
-      start_lon: state.gpx.startLon || null,
-    } : null,
-    weather: state.weather ? {
-      date: state.weather.date,
-      temperature_min: state.weather.temperature_min,
-      temperature_max: state.weather.temperature_max,
-      precipitation_mm: state.weather.precipitation_mm,
-      wind_kmh: state.weather.wind_kmh,
-      condition: els.inputWeatherCondition.value.trim(),
-      source: "Open-Meteo",
-    } : null,
+    gpx_stats: state.gpx
+      ? {
+          distance_km: state.gpx.distance_km,
+          duration_hours: state.gpx.duration_hours,
+          elevation_up_m: state.gpx.elevation_up_m,
+          elevation_down_m: state.gpx.elevation_down_m,
+          avg_speed_kmh: state.gpx.avg_speed_kmh,
+          max_speed_kmh: state.gpx.max_speed_kmh,
+          highest_point_m: state.gpx.highest_point_m,
+          lowest_point_m: state.gpx.lowest_point_m,
+          start_lat: state.gpx.startLat || null,
+          start_lon: state.gpx.startLon || null,
+        }
+      : null,
+
+    // gpx_raw: ruwe GPX-tekst ingebed als string
+    // Aanwezig als een .gpx bestand geladen was (upload of vorige import)
+    // null bij handmatig ingevoerde stats of oudere imports zonder GPX
+    gpx_raw: state.gpxRaw || null,
+
+    weather: state.weather
+      ? {
+          date: state.weather.date,
+          temperature_min: state.weather.temperature_min,
+          temperature_max: state.weather.temperature_max,
+          precipitation_mm: state.weather.precipitation_mm,
+          wind_kmh: state.weather.wind_kmh,
+          condition: els.inputWeatherCondition.value.trim(),
+          source: "Open-Meteo",
+        }
+      : null,
   };
 }
 
@@ -1120,7 +1157,6 @@ function initLeafletMap(gpx) {
   const container = document.getElementById("leaflet-preview-map");
   if (!container) return;
 
-  // Kaart verwijderen als die al bestaat (bij herladen)
   if (leafletMap) {
     leafletMap.remove();
     leafletMap = null;
@@ -1137,7 +1173,6 @@ function initLeafletMap(gpx) {
     maxZoom: 18,
   }).addTo(leafletMap);
 
-  // Route tekenen als trackpunten beschikbaar zijn
   if (gpx.trackPoints?.length > 1) {
     leafletRoute = L.polyline(gpx.trackPoints, {
       color: "#2C4A3B",
@@ -1146,11 +1181,9 @@ function initLeafletMap(gpx) {
     }).addTo(leafletMap);
     leafletMap.fitBounds(leafletRoute.getBounds(), { padding: [16, 16] });
   } else {
-    // Geen trackpunten — toon alleen startpunt
     leafletMap.setView([lat, lon], 13);
   }
 
-  // Startmarker
   L.circleMarker([lat, lon], {
     radius: 6,
     fillColor: "#2C4A3B",
@@ -1162,7 +1195,7 @@ function initLeafletMap(gpx) {
 }
 
 // -----------------------------------------------------------
-// ROUTES.JSON ENTRY EXPORT
+// ROUTES.JSON ENTRY EXPORT (ongewijzigd)
 // -----------------------------------------------------------
 document.getElementById("btn-export-routes-entry").addEventListener("click", () => {
   const id = els.inputRouteId.value.trim();
@@ -1173,10 +1206,7 @@ document.getElementById("btn-export-routes-entry").addEventListener("click", () 
   }
 
   const heroUrl = els.inputHeroPhoto.value.trim();
-  // Thumbnail: w_400 ipv w_1200
-  const thumbUrl = heroUrl
-    ? heroUrl.replace("w_1200", "w_400")
-    : "";
+  const thumbUrl = heroUrl ? heroUrl.replace("w_1200", "w_400") : "";
 
   const entry = {
     id,
@@ -1201,6 +1231,9 @@ document.getElementById("btn-export-routes-entry").addEventListener("click", () 
   a.click();
   URL.revokeObjectURL(url);
 });
+
+// -----------------------------------------------------------
+// HULPFUNCTIES
 // -----------------------------------------------------------
 function showInlineError(inputEl, message) {
   inputEl.style.borderColor = "var(--color-hard)";
@@ -1218,7 +1251,7 @@ function showInlineError(inputEl, message) {
 }
 
 // -----------------------------------------------------------
-// INIT — v2.0.0
+// INIT — v2.1.0
 // -----------------------------------------------------------
 window.appReady.then(() => {
   renderBlockEditor();
