@@ -1,6 +1,6 @@
 # MyTrailWalks — PROJECTLOG.md
-## Bijgewerkt: 28-06-2026
-> Versie: v1.5.0 · Projectlog — chronologisch overzicht van sessies en wijzigingen
+## Bijgewerkt: 29-06-2026
+> Versie: v1.6.0 · Projectlog — chronologisch overzicht van sessies en wijzigingen
 
 ---
 
@@ -190,6 +190,48 @@
 - Dagtrips categorie (T1-010)
 - Trails categorie (T1-011)
 - Print CSS volledig (T7-001)
+
+---
+
+## Patch 29-06-2026 (tussensessie)
+**Onderwerp:** creator.js GPX verbeteringen — raw export/import + GPS-ruis filtering
+
+**Status:**
+- T1-006 ✅ Uitgebreid — gpx_raw embed + GPS-ruis filtering
+- T2-002 ✅ Uitgebreid — GPS-ruis filtering in parseGpx()
+- T2-005 ✅ Uitgebreid — gpx_raw opgeslagen bij upload
+
+### Aangeleverde bestanden
+
+| Bestand | Versie | Omschrijving |
+|---------|--------|--------------|
+| `js/creator.js` | v2.2.0 | GPX raw embed in JSON export + herstel bij import + GPS-ruis filtering |
+
+### Wijzigingen in detail
+
+**gpx_raw export/import:**
+- JSON export bevat nu `gpx_raw`: volledige GPX-tekst als string
+- JSON import: `gpx_raw` aanwezig → GPX volledig hersteld via `parseGpx()`, trackpunten en kaart actief
+- Zonder `gpx_raw` (oudere exports): fallback naar `gpx_stats` read-only — achterwaarts compatibel
+- Status toont `✓ Uit JSON (GPX aanwezig)` vs `✓ Uit JSON`
+
+**GPS-ruis filtering in parseGpx() (stille filters):**
+- Hoogte: eleDiff < ±2m genegeerd → Kalmthout: was +423m/-432m, correct ~46m/~41m
+- Snelheid: eerste 10 trackpunten overgeslagen (GPS koude-start) → was 37.8 km/u, correct ~8 km/u max
+
+**Snelheidswaarschuwing (bij twijfel):**
+- Pieken ≥ 3× gemiddelde gedetecteerd na koude-start skip
+- Gele niet-blokkerende waarschuwing onder GPX-stats
+- Knoppen: "Negeren" (gefilterde waarde) of "Toch bewaren" (ruwe waarde)
+- Puur statistisch — geen koppeling aan vervoersmiddel
+
+### Architectuurbeslissingen patch 29-06-2026
+
+| Onderwerp | Beslissing |
+|-----------|-----------|
+| **gpx_raw** | Volledige GPX-tekst als string in JSON export. Veld `gpx_raw` in route JSON. |
+| **GPS filtering** | Drempel 2m voor hoogte. Koude-start skip 10 punten. Pieken ≥ 3× gemiddelde → waarschuwing. |
+| **Vervoersmiddel** | Geen drempelwaarden per vervoersmiddel — puur statistisch filteren. |
 
 ---
 
