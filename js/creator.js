@@ -1,6 +1,9 @@
 // =======================================================
 // creator.js — MyTrailWalks
 // Route creator: GPX parse, weer, locatie, AI, JSON export
+// v2.4.0: hike/trail vervoersmiddel + moeilijkheidsschaal per vervoersmiddel
+//         (walking W1-W3, hike SAC T1-T6, cycling/motorcycle/car
+//          klim+bochtigheid uit GPX + kasseien-override)
 // v2.3.0: meerdere segmenten (GPX + datum/locatie per segment)
 // v2.2.0: GPX raw embed in JSON export + GPS-ruis filtering
 // v2.1.0: GPX raw embed in JSON export + herstel bij import
@@ -25,6 +28,7 @@ const TRANSPORT_COLORS = {
 
 const TRANSPORT_LABELS = {
   walking:    "🚶 Wandelen",
+  hike:       "🥾 Hike / Trail",
   cycling:    "🚴 Fietsen",
   motorcycle: "🏍 Motor",
   car:        "🚗 Auto",
@@ -33,6 +37,201 @@ const TRANSPORT_LABELS = {
   boat:       "⛵ Boot",
   plane:      "✈️ Vliegtuig",
 };
+
+// -----------------------------------------------------------
+// MOEILIJKHEIDSSCHALEN PER VERVOERSMIDDEL
+// -----------------------------------------------------------
+// Elk vervoersmiddel heeft een eigen, passende schaal:
+//   - walking: vlakke wandelschaal W1-W3 (stijging per km)
+//   - hike: SAC-bergwandelschaal T1-T6 (afstand + stijging + weer)
+//   - cycling/motorcycle/car: klim + bochtigheid uit GPX,
+//     met handmatige override voor wegdektype (kasseien)
+//   - train/bus/boat/plane: geen schaal — geen fysieke/rij-inspanning
+//
+// DIFFICULTY_SCALES bevat de UI-opties (dropdown) per vervoersmiddel.
+// De waarde "auto" betekent: automatisch berekend, gebruiker kan
+// overschrijven door zelf een niveau te kiezen.
+const DIFFICULTY_SCALES = {
+  walking: [
+    { value: "W1", label: "W1 — Vlak (wandelpad, park, heide)" },
+    { value: "W2", label: "W2 — Glooiend (bos, polders)" },
+    { value: "W3", label: "W3 — Heuvelachtig (onverhard, hellingen)" },
+  ],
+  hike: [
+    { value: "T1", label: "T1 — Wandelen (vlak, gymschoenen volstaan)" },
+    { value: "T2", label: "T2 — Bergwandeling (gedeeltelijk steil)" },
+    { value: "T3", label: "T3 — Veeleisende bergwandeling (steil terrein)" },
+    { value: "T4", label: "T4 — Alpine wandeling (soms handen nodig)" },
+    { value: "T5", label: "T5 — Veeleisende alpine wandeling (bergschoenen)" },
+    { value: "T6", label: "T6 — Moeilijke alpine wandeling (klimgedeeltes)" },
+  ],
+  cycling: [
+    { value: "C1", label: "C1 — Ontspannen (fietspad, rivierdal)" },
+    { value: "C2", label: "C2 — Gemiddeld (landweg, lichte bochten)" },
+    { value: "C3", label: "C3 — Pittig (heuvelweg, col met bochten)" },
+    { value: "C4", label: "C4 — Zwaar (bergpas, haarspeldbochten)" },
+  ],
+  motorcycle: [
+    { value: "M1", label: "M1 — Verharde weg (lokaal, snelweg, asfalt/beton/klinkers)" },
+    { value: "M2", label: "M2 — Toeren / kasseien (landweg of kinderkopjes)" },
+    { value: "M3", label: "M3 — Sportief (bergweg met bochten)" },
+    { value: "M4", label: "M4 — Uitdagend (alpenpas, haarspeldbochten)" },
+  ],
+  car: [
+    { value: "A1", label: "A1 — Verharde weg (lokaal, snelweg, asfalt/beton/klinkers)" },
+    { value: "A2", label: "A2 — Landweg / kasseien (secundaire weg of kinderkopjes)" },
+    { value: "A3", label: "A3 — Bergweg (heuvelachtig, col met bochten)" },
+    { value: "A4", label: "A4 — Pas (alpenpas, serpentines)" },
+  ],
+  // Geen schaal voor train/bus/boat/plane
+};
+
+/**
+ * Bereken automatisch een moeilijkheidsniveau voor een segment,
+ * op basis van vervoersmiddel + GPX-data (+ weer voor hike).
+ *
+ * Walking  → W1-W3 op basis van stijging per km
+ * Hike     → T1-T6 op basis van afstand + stijging + weer (oude SAC-logica)
+ * Cycling/Motorcycle/Car → klimintensiteit + bochtigheid uit trackpunten,
+ *            met handmatige "kasseien" override die het niveau optilt
+ * Overige  → null (geen schaal van toepassing)
+ *
+ * @param {object} seg - Eén segment uit state.segments
+ * @returns {string|null} Berekend niveau (bv. "W2", "T3", "C1") of null
+ */
+function calculateSegmentDifficulty(seg) {
+  const gpx = seg.gpx;
+  if (!gpx || !gpx.distance_km) return null;
+
+  if (seg.transport === "walking") {
+    // Vlakke wandelschaal: stijging per km
+    const climbPerKm = (gpx.elevation_up_m || 0) / gpx.distance_km;
+    if (climbPerKm < 5) return "W1";
+    if (climbPerKm < 15) return "W2";
+    return "W3";
+  }
+
+  if (seg.transport === "hike") {
+    // SAC-bergwandelschaal — bestaande logica (afstand + stijging + weer)
+    let score = 0;
+    score += gpx.distance_km;
+    if (gpx.elevation_up_m) score += gpx.elevation_up_m / 100;
+    if (seg.weather) {
+      if (seg.weather.temperature_max >= 25) score += 2;
+      if (seg.weather.precipitation_mm >= 5) score += 2;
+      if (seg.weather.wind_kmh >= 30) score += 1;
+    }
+    if (score <= 5)  return "T1";
+    if (score <= 10) return "T2";
+    if (score <= 16) return "T3";
+    if (score <= 22) return "T4";
+    if (score <= 28) return "T5";
+    return "T6";
+  }
+
+  if (["cycling", "motorcycle", "car"].includes(seg.transport)) {
+    return _calculateRoadDifficulty(seg);
+  }
+
+  // train/bus/boat/plane — geen schaal
+  return null;
+}
+
+/**
+ * Bereken klim- en bochtigheidsniveau voor wegvoertuigen
+ * (cycling, motorcycle, car) uit de GPX trackpunten.
+ *
+ * Klimintensiteit = elevation_up_m / distance_km
+ * Bochtigheid = aantal scherpe bochten (>30° richtingsverschil) per km
+ *
+ * De "kasseien" checkbox (seg.roughSurface) tilt het resultaat met
+ * minstens één niveau op voor motorcycle/car, omdat onverhard/kasseien
+ * een zwaarder rijcomfort geeft ongeacht klim/bochten.
+ *
+ * @param {object} seg - segment met gpx data en evt. roughSurface vlag
+ * @returns {string} Niveau-code, bv. "C2", "M3", "A1"
+ */
+function _calculateRoadDifficulty(seg) {
+  const gpx = seg.gpx;
+  const prefix = { cycling: "C", motorcycle: "M", car: "A" }[seg.transport];
+  const maxLevel = seg.transport === "cycling" ? 4 : 4;
+
+  const climbPerKm = (gpx.elevation_up_m || 0) / gpx.distance_km;
+  const sharpTurnsPerKm = _countSharpTurnsPerKm(gpx.trackPoints, gpx.distance_km);
+
+  // Basis-niveau bepalen op basis van klim + bochten (1-4)
+  let level;
+  if (seg.transport === "cycling") {
+    // Fietsen: gevoeliger voor klim dan gemotoriseerd vervoer
+    if (climbPerKm < 8 && sharpTurnsPerKm < 3) level = 1;
+    else if (climbPerKm < 20 || sharpTurnsPerKm < 8) level = 2;
+    else if (climbPerKm < 40 || sharpTurnsPerKm < 15) level = 3;
+    else level = 4;
+  } else {
+    // Motor/auto: minder gevoelig voor klim, meer voor bochten
+    if (climbPerKm < 15 && sharpTurnsPerKm < 2) level = 1;
+    else if (climbPerKm < 40 || sharpTurnsPerKm < 6) level = 2;
+    else if (climbPerKm < 80 || sharpTurnsPerKm < 15) level = 3;
+    else level = 4;
+  }
+
+  // Kasseien/onverhard override: minimaal niveau 2 voor motor/auto
+  // (niveau 1 = "verharde weg" per definitie, dus kasseien kan daar niet in)
+  if (seg.roughSurface && (seg.transport === "motorcycle" || seg.transport === "car") && level < 2) {
+    level = 2;
+  }
+
+  return `${prefix}${level}`;
+}
+
+/**
+ * Telt het aantal "scherpe bochten" (richtingsverandering > 30°)
+ * per kilometer langs de trackpunten van een GPX-route.
+ *
+ * Gebruikt simpele vectorhoeken tussen opeenvolgende segmenten,
+ * vergelijkbaar met de bestaande Haversine-afstandsberekening.
+ * Geen nieuwe afhankelijkheden nodig.
+ *
+ * @param {Array<[number,number]>} trackPoints - lat/lon paren (gesampled, max 500)
+ * @param {number} distanceKm - totale afstand van de route
+ * @returns {number} scherpe bochten per kilometer
+ */
+function _countSharpTurnsPerKm(trackPoints, distanceKm) {
+  if (!trackPoints || trackPoints.length < 3 || !distanceKm) return 0;
+
+  let sharpTurns = 0;
+  for (let i = 1; i < trackPoints.length - 1; i++) {
+    const [lat1, lon1] = trackPoints[i - 1];
+    const [lat2, lon2] = trackPoints[i];
+    const [lat3, lon3] = trackPoints[i + 1];
+
+    // Richting (bearing) van segment 1→2 en 2→3
+    const bearing1 = _bearing(lat1, lon1, lat2, lon2);
+    const bearing2 = _bearing(lat2, lon2, lat3, lon3);
+
+    // Kleinste hoekverschil tussen de twee richtingen (0-180°)
+    let diff = Math.abs(bearing2 - bearing1);
+    if (diff > 180) diff = 360 - diff;
+
+    if (diff > 30) sharpTurns++;
+  }
+
+  return sharpTurns / distanceKm;
+}
+
+/**
+ * Bereken de bearing (richting in graden, 0-360) tussen twee GPS-punten.
+ * @returns {number} bearing in graden
+ */
+function _bearing(lat1, lon1, lat2, lon2) {
+  const phi1 = (lat1 * Math.PI) / 180;
+  const phi2 = (lat2 * Math.PI) / 180;
+  const dLambda = ((lon2 - lon1) * Math.PI) / 180;
+  const y = Math.sin(dLambda) * Math.cos(phi2);
+  const x = Math.cos(phi1) * Math.sin(phi2) - Math.sin(phi1) * Math.cos(phi2) * Math.cos(dLambda);
+  const theta = Math.atan2(y, x);
+  return ((theta * 180) / Math.PI + 360) % 360;
+}
 
 // -----------------------------------------------------------
 // STATE
@@ -57,6 +256,9 @@ const state = {
       region: "",
       place: "",
       weather: null,
+      difficulty: "",         // niveau-code per vervoersmiddel (bv. "W2", "T3", "C1")
+      difficultyAuto: true,   // true = automatisch berekend, false = handmatig overschreven
+      roughSurface: false,    // kasseien/onverhard — alleen relevant voor motorcycle/car
     },
   ],
 
@@ -195,6 +397,11 @@ function renderSegments() {
         </div>
       </div>
 
+      <!-- Moeilijkheidsgraad — schaal afhankelijk van vervoersmiddel -->
+      <div class="segment-difficulty" id="segment-difficulty-${sid}">
+        ${_renderDifficultyBlock(seg)}
+      </div>
+
       <!-- Datum & locatie -->
       <div class="segment-meta">
         <div class="field-row">
@@ -251,6 +458,52 @@ function renderSegments() {
 }
 
 /**
+ * Rendert de moeilijkheidsgraad-sectie voor één segment.
+ * Toont de juiste schaal-dropdown op basis van seg.transport.
+ * Voor motorcycle/car wordt ook de "kasseien" checkbox getoond.
+ * Voor train/bus/boat/plane wordt niets getoond (geen schaal).
+ *
+ * @param {object} seg - segment object
+ * @returns {string} HTML
+ */
+function _renderDifficultyBlock(seg) {
+  const sid = seg.id;
+  const scale = DIFFICULTY_SCALES[seg.transport];
+
+  // Geen schaal voor dit vervoersmiddel
+  if (!scale) {
+    return `<p class="field__help segment-difficulty__none">Geen moeilijkheidsschaal van toepassing voor dit vervoersmiddel.</p>`;
+  }
+
+  const showRoughSurface = seg.transport === "motorcycle" || seg.transport === "car";
+  const autoLabel = seg.gpx
+    ? (seg.difficultyAuto ? "✓ Automatisch berekend" : "Handmatig ingesteld")
+    : "Laad een GPX-bestand voor automatische berekening";
+
+  return `
+    <div class="field">
+      <label class="field__label">Moeilijkheidsgraad</label>
+      <select class="input segment-difficulty-select" data-sid="${sid}">
+        <option value="">— Kies —</option>
+        ${scale.map((opt) =>
+          `<option value="${opt.value}" ${seg.difficulty === opt.value ? "selected" : ""}>${opt.label}</option>`
+        ).join("")}
+      </select>
+      <span class="field__help segment-difficulty__status" id="difficulty-status-${sid}">${autoLabel}</span>
+    </div>
+    ${showRoughSurface ? `
+      <div class="field field--inline">
+        <label class="checkbox-label">
+          <input type="checkbox" class="segment-rough-surface" data-sid="${sid}" ${seg.roughSurface ? "checked" : ""}>
+          Kasseien / kinderkopjes / onverhard wegdek
+        </label>
+        <span class="field__help">Tilt het niveau minstens naar niveau 2 (wegdektype is niet uit GPX af te leiden)</span>
+      </div>
+    ` : ""}
+  `;
+}
+
+/**
  * Koppelt alle event listeners aan één segment.
  * Wordt aangeroepen na renderSegments() voor elk segment.
  * @param {number} sid - segment ID
@@ -259,7 +512,7 @@ function _bindSegmentEvents(sid) {
   const seg = _getSeg(sid);
   if (!seg) return;
 
-  // Vervoersmiddel — update kleur en state
+  // Vervoersmiddel — update kleur, herbereken difficulty, herrender schaal
   const transportSel = document.querySelector(`.segment-transport[data-sid="${sid}"]`);
   if (transportSel) {
     transportSel.addEventListener("change", (e) => {
@@ -267,6 +520,15 @@ function _bindSegmentEvents(sid) {
       // Kleur van segment header bijwerken zonder volledige re-render
       const block = document.querySelector(`.segment-block[data-sid="${sid}"]`);
       if (block) block.style.borderLeftColor = TRANSPORT_COLORS[seg.transport] || "#2C4A3B";
+
+      // Bij vervoerswissel: schaal verandert, dus difficulty reset + herberekenen
+      seg.difficulty = "";
+      seg.difficultyAuto = true;
+      if (seg.gpx) {
+        const auto = calculateSegmentDifficulty(seg);
+        if (auto) seg.difficulty = auto;
+      }
+      _refreshDifficultyBlock(sid);
       updatePreview();
     });
   }
@@ -344,6 +606,36 @@ function _bindSegmentEvents(sid) {
     });
   }
 
+  // Moeilijkheidsgraad — handmatige keuze overschrijft automatische berekening
+  const difficultySel = document.querySelector(`.segment-difficulty-select[data-sid="${sid}"]`);
+  if (difficultySel) {
+    difficultySel.addEventListener("change", (e) => {
+      seg.difficulty = e.target.value;
+      seg.difficultyAuto = false; // gebruiker koos zelf — niet langer automatisch
+      const statusEl = $(`difficulty-status-${sid}`);
+      if (statusEl) statusEl.textContent = seg.difficulty ? "Handmatig ingesteld" : "Nog niet gekozen";
+      updatePreview();
+    });
+  }
+
+  // Kasseien/onverhard — beïnvloedt automatische berekening voor motor/auto
+  const roughInp = document.querySelector(`.segment-rough-surface[data-sid="${sid}"]`);
+  if (roughInp) {
+    roughInp.addEventListener("change", (e) => {
+      seg.roughSurface = e.target.checked;
+      // Herbereken automatisch als gebruiker nog niet handmatig had ingesteld
+      if (seg.difficultyAuto && seg.gpx) {
+        const auto = calculateSegmentDifficulty(seg);
+        if (auto) {
+          seg.difficulty = auto;
+          const sel = document.querySelector(`.segment-difficulty-select[data-sid="${sid}"]`);
+          if (sel) sel.value = auto;
+        }
+      }
+      updatePreview();
+    });
+  }
+
   // Locatie velden
   const locInp = document.querySelector(`.segment-location[data-sid="${sid}"]`);
   if (locInp) locInp.addEventListener("input", (e) => { seg.location = e.target.value; updatePreview(); });
@@ -383,6 +675,45 @@ function _bindSegmentEvents(sid) {
   });
 }
 
+/**
+ * Herrendert enkel het moeilijkheidsgraad-blok van één segment,
+ * zonder de rest van het segment opnieuw op te bouwen.
+ * Wordt aangeroepen na vervoersmiddel-wissel.
+ * @param {number} sid - segment ID
+ */
+function _refreshDifficultyBlock(sid) {
+  const seg = _getSeg(sid);
+  const container = $(`segment-difficulty-${sid}`);
+  if (!seg || !container) return;
+  container.innerHTML = _renderDifficultyBlock(seg);
+
+  // Events opnieuw koppelen voor de nieuwe dropdown/checkbox
+  const difficultySel = container.querySelector(`.segment-difficulty-select[data-sid="${sid}"]`);
+  if (difficultySel) {
+    difficultySel.addEventListener("change", (e) => {
+      seg.difficulty = e.target.value;
+      seg.difficultyAuto = false;
+      const statusEl = $(`difficulty-status-${sid}`);
+      if (statusEl) statusEl.textContent = seg.difficulty ? "Handmatig ingesteld" : "Nog niet gekozen";
+      updatePreview();
+    });
+  }
+  const roughInp = container.querySelector(`.segment-rough-surface[data-sid="${sid}"]`);
+  if (roughInp) {
+    roughInp.addEventListener("change", (e) => {
+      seg.roughSurface = e.target.checked;
+      if (seg.difficultyAuto && seg.gpx) {
+        const auto = calculateSegmentDifficulty(seg);
+        if (auto) {
+          seg.difficulty = auto;
+          difficultySel.value = auto;
+        }
+      }
+      updatePreview();
+    });
+  }
+}
+
 /** Hulpfunctie: zoek een segment op via zijn ID */
 function _getSeg(sid) {
   return state.segments.find((s) => s.id === sid) || null;
@@ -403,6 +734,9 @@ els.btnAddSegment.addEventListener("click", () => {
     region: "",
     place: "",
     weather: null,
+    difficulty: "",
+    difficultyAuto: true,
+    roughSurface: false,
   });
   renderSegments();
   // Scroll naar nieuw segment
@@ -508,6 +842,11 @@ function loadJsonIntoForm(data) {
         region: s.region || "",
         place: s.place || "",
         weather: s.weather || null,
+        // difficulty velden zijn nieuw (v2.4+) — vallen netjes terug op
+        // defaults bij import van oudere JSON zonder deze velden
+        difficulty: s.difficulty || "",
+        difficultyAuto: s.difficulty_auto !== false,
+        roughSurface: s.rough_surface || false,
       };
 
       // GPX herstellen
@@ -516,6 +855,13 @@ function loadJsonIntoForm(data) {
         if (parsed) seg.gpx = parsed;
       } else if (s.gpx_stats) {
         seg.gpx = _gpxStatsToGpx(s.gpx_stats);
+      }
+
+      // Als er geen difficulty was opgeslagen (oudere export) maar er wel
+      // GPX-data is, automatisch berekenen zodat het veld niet leeg blijft
+      if (!seg.difficulty && seg.gpx) {
+        const auto = calculateSegmentDifficulty(seg);
+        if (auto) seg.difficulty = auto;
       }
 
       return seg;
@@ -532,6 +878,9 @@ function loadJsonIntoForm(data) {
     seg.region = data.region || "";
     seg.place = data.place || "";
     seg.weather = data.weather || null;
+    seg.difficulty = data.difficulty || ""; // oude root-level T1-T6 veld hergebruikt
+    seg.difficultyAuto = !data.difficulty;
+    seg.roughSurface = false;
 
     if (data.gpx_raw) {
       seg.gpxRaw = data.gpx_raw;
@@ -539,6 +888,12 @@ function loadJsonIntoForm(data) {
       if (parsed) seg.gpx = parsed;
     } else if (data.gpx_stats) {
       seg.gpx = _gpxStatsToGpx(data.gpx_stats);
+    }
+
+    // Automatisch berekenen als er geen difficulty was meegegeven
+    if (!seg.difficulty && seg.gpx) {
+      const auto = calculateSegmentDifficulty(seg);
+      if (auto) seg.difficulty = auto;
     }
 
     state.segments = [seg];
@@ -802,7 +1157,18 @@ function handleGpxFile(file, sid) {
       fetchLocationName(gpxData.startLat, gpxData.startLon, sid);
     }
 
-    // Moeilijkheid berekenen op basis van eerste segment
+    // Moeilijkheidsgraad automatisch berekenen voor dit segment
+    // (enkel als gebruiker nog niet handmatig had gekozen)
+    if (seg.difficultyAuto) {
+      const auto = calculateSegmentDifficulty(seg);
+      if (auto) {
+        seg.difficulty = auto;
+        _refreshDifficultyBlock(sid);
+      }
+    }
+
+    // Globale route-moeilijkheid (T1-T6 veld in stap 2) blijft gekoppeld
+    // aan het eerste segment voor achterwaartse compatibiliteit
     if (sid === state.segments[0].id) applyCalculatedDifficulty();
     updatePreview();
   };
@@ -1088,7 +1454,18 @@ async function fetchWeather(sid) {
     const weatherBlock = $(`weather-block-${sid}`);
     if (weatherBlock) weatherBlock.hidden = false;
 
-    // Moeilijkheid berekenen op basis van eerste segment
+    // Moeilijkheidsgraad herberekenen — relevant voor 'hike' (SAC-schaal
+    // gebruikt ook weer), niet voor de andere vervoersmiddelen
+    if (seg.difficultyAuto && seg.gpx) {
+      const auto = calculateSegmentDifficulty(seg);
+      if (auto) {
+        seg.difficulty = auto;
+        _refreshDifficultyBlock(sid);
+      }
+    }
+
+    // Globale route-moeilijkheid (T1-T6 veld in stap 2) blijft gekoppeld
+    // aan het eerste segment voor achterwaartse compatibiliteit
     if (sid === state.segments[0].id) applyCalculatedDifficulty();
     updatePreview();
   } catch (err) {
@@ -1266,6 +1643,9 @@ function buildRouteJson() {
     country: s.country || null,
     region: s.region || null,
     place: s.place || null,
+    difficulty: s.difficulty || null,
+    difficulty_auto: s.difficultyAuto !== false,
+    rough_surface: s.roughSurface || false,
     gpx_stats: s.gpx ? {
       distance_km: s.gpx.distance_km,
       duration_hours: s.gpx.duration_hours,
@@ -1289,6 +1669,7 @@ function buildRouteJson() {
       source: "Open-Meteo",
     } : null,
   }));
+
 
   return {
     id,
@@ -1528,10 +1909,10 @@ function showInlineError(inputEl, message) {
 }
 
 // -----------------------------------------------------------
-// INIT — v2.3.0
+// INIT — v2.4.0
 // -----------------------------------------------------------
 window.appReady.then(() => {
-  // Injecteer stijlen voor segmenten en GPX waarschuwing
+  // Injecteer stijlen voor segmenten, difficulty en GPX waarschuwing
   const style = document.createElement("style");
   style.textContent = `
     /* Segment blokken */
@@ -1578,6 +1959,29 @@ window.appReady.then(() => {
     .segment-gpx { margin-bottom: 12px; }
     .segment-meta { padding-top: 8px; }
     .segment-block .drop-zone--has-file { background: var(--color-forest, #2C4A3B); opacity: 0.08; }
+
+    /* Moeilijkheidsgraad blok */
+    .segment-difficulty {
+      margin-bottom: 12px;
+      padding: 10px 12px;
+      background: rgba(255,255,255,0.5);
+      border-radius: 6px;
+    }
+    .segment-difficulty__none {
+      margin: 0;
+      font-style: italic;
+    }
+    .segment-difficulty__status {
+      display: block;
+      margin-top: 4px;
+    }
+    .checkbox-label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: var(--text-sm, 0.875rem);
+      cursor: pointer;
+    }
 
     /* GPX waarschuwing */
     .gpx-warning {
