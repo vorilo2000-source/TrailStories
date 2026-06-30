@@ -9,7 +9,8 @@
     "elevationDown": "Daling",
     "avgSpeed": "Gem. snelheid",
     "highestPoint": "Hoogste punt",
-    "lowestPoint": "Laagste punt"
+    "lowestPoint": "Laagste punt",
+    "maxSpeed": "Max. snelheid"
   },
   "sections": {
     "weather": "Weer",
@@ -27,6 +28,7 @@
   },
   "transport": {
     "walking": "🚶 Wandelen",
+    "hike": "🥾 Hike / Trail",
     "cycling": "🚴 Fietsen",
     "motorcycle": "🏍 Motor",
     "car": "🚗 Auto",
@@ -36,12 +38,27 @@
     "plane": "✈️ Vliegtuig"
   },
   "difficulty": {
+    "W1": "W1 — Vlak",
+    "W2": "W2 — Glooiend",
+    "W3": "W3 — Heuvelachtig",
     "T1": "T1 — Wandelen",
     "T2": "T2 — Bergwandeling",
     "T3": "T3 — Veeleisende bergwandeling",
     "T4": "T4 — Alpine wandeling",
     "T5": "T5 — Veeleisende alpine wandeling",
     "T6": "T6 — Moeilijke alpine wandeling",
+    "C1": "C1 — Ontspannen",
+    "C2": "C2 — Gemiddeld",
+    "C3": "C3 — Pittig",
+    "C4": "C4 — Zwaar",
+    "M1": "M1 — Verharde weg",
+    "M2": "M2 — Toeren / kasseien",
+    "M3": "M3 — Sportief",
+    "M4": "M4 — Uitdagend",
+    "A1": "A1 — Verharde weg",
+    "A2": "A2 — Landweg / kasseien",
+    "A3": "A3 — Bergweg",
+    "A4": "A4 — Pas",
     "easy": "Gemakkelijk",
     "medium": "Gemiddeld",
     "hard": "Zwaar"
