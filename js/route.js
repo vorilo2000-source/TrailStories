@@ -1,8 +1,9 @@
 // =======================================================
 // route.js — MyTrailWalks
 // Route detail pagina: laadt JSON en rendert route
+// v2.2.0: gpx_raw fallback voor ontbrekende track_points (bug fix creator < v2.4.1)
+//         stats.maxSpeed i18n fallback
 // v2.1.0: kaart toont alle segmenten met kleurcode per vervoersmiddel
-//         (achterwaarts compatibel met routes zonder segments array)
 // v2.0.0: nieuwe lay-out — 2-koloms, slideshow galerij, status badge
 // v1.2.0: dubbele code verwijderd, schone versie
 // =======================================================
@@ -122,7 +123,8 @@ function renderStats(route) {
     { value: g.avg_speed_kmh ? `${g.avg_speed_kmh} km/u` : "—", label: t("stats.avgSpeed") },
     { value: g.highest_point_m ? `${g.highest_point_m} m` : "—", label: t("stats.highestPoint") },
     { value: g.lowest_point_m ? `${g.lowest_point_m} m` : "—", label: t("stats.lowestPoint") },
-    { value: g.max_speed_kmh ? `${g.max_speed_kmh} km/u` : "—", label: t("stats.maxSpeed") },
+    // Fallback "Max. snelheid" voor het geval stats.maxSpeed ontbreekt in de i18n bestanden
+    { value: g.max_speed_kmh ? `${g.max_speed_kmh} km/u` : "—", label: t("stats.maxSpeed") === "stats.maxSpeed" ? "Max. snelheid" : t("stats.maxSpeed") },
   ];
 
   const container = $("route-stats");
@@ -198,11 +200,15 @@ function renderSource(route) {
 //      wordt getekend als eigen polyline in de kleur van zijn
 //      vervoersmiddel, met een popup-label per startmarker.
 //   B) route.segments ontbreekt (legacy export) — fallback op het
-//      enkelvoudige route.gpx_stats zoals voorheen, in de standaard
-//      forest-groene kleur.
+//      enkelvoudige route.gpx_stats zoals voorheen.
+//
+// Fallback voor ontbrekende track_points:
+//   Als gpx_stats.track_points ontbreekt maar gpx_raw aanwezig is,
+//   wordt de GPX client-side herparst om de trackpunten te herstellen.
+//   Dit dekt exports van creator.js < v2.4.1 waarbij track_points
+//   ontbrak in segments[].gpx_stats.
 // -----------------------------------------------------------
 function renderMap(route) {
-  // Bepaal welke data-bron we hebben: segmenten of legacy gpx_stats
   const segments = route.segments?.filter((s) => s.gpx_stats?.start_lat) || [];
   const hasSegments = segments.length > 0;
   const legacy = route.gpx_stats;
@@ -211,7 +217,27 @@ function renderMap(route) {
 
   $("section-map").hidden = false;
 
-  setTimeout(() => {
+  // Bouw lijst van te tekenen items op — elk item heeft start_lat/lon,
+  // optionele track_points, optionele gpx_raw als fallback, transport en label
+  const items = hasSegments
+    ? segments.map((seg) => ({
+        lat: seg.gpx_stats.start_lat,
+        lon: seg.gpx_stats.start_lon,
+        trackPoints: seg.gpx_stats.track_points || null,
+        gpxRaw: seg.gpx_raw || null,
+        color: TRANSPORT_COLORS[seg.transport] || "#2C4A3B",
+        label: seg.label || TRANSPORT_LABELS[seg.transport] || seg.transport || "Segment",
+      }))
+    : [{
+        lat: legacy.start_lat,
+        lon: legacy.start_lon,
+        trackPoints: legacy.track_points || null,
+        gpxRaw: route.gpx_raw || null,
+        color: "#2C4A3B",
+        label: "Startpunt",
+      }];
+
+  setTimeout(async () => {
     const map = L.map("route-map", { zoomControl: true, scrollWheelZoom: false });
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       attribution: "© OpenStreetMap contributors",
@@ -219,59 +245,38 @@ function renderMap(route) {
     }).addTo(map);
 
     const allBounds = [];
-    // Voor de "Route openen" knop gebruiken we altijd het eerste punt
     let firstLat = null;
     let firstLon = null;
 
-    if (hasSegments) {
-      // -------- Scenario A: meerdere segmenten met kleurcode --------
-      segments.forEach((seg) => {
-        const g = seg.gpx_stats;
-        if (!g?.start_lat || !g?.start_lon) return;
+    for (const item of items) {
+      if (firstLat === null) { firstLat = item.lat; firstLon = item.lon; }
 
-        const color = TRANSPORT_COLORS[seg.transport] || "#2C4A3B";
-        const label = seg.label || TRANSPORT_LABELS[seg.transport] || seg.transport || "Segment";
-
-        if (firstLat === null) { firstLat = g.start_lat; firstLon = g.start_lon; }
-
-        // Route als polyline tekenen, indien trackpunten aanwezig
-        if (g.track_points?.length > 1) {
-          L.polyline(g.track_points, { color, weight: 3, opacity: 0.85 }).addTo(map);
-          allBounds.push(...g.track_points);
-        } else {
-          allBounds.push([g.start_lat, g.start_lon]);
-        }
-
-        // Startmarker met label in de kleur van het vervoersmiddel
-        L.circleMarker([g.start_lat, g.start_lon], {
-          radius: 7, fillColor: color, color: "#fff", weight: 2, fillOpacity: 1,
-        }).addTo(map).bindPopup(label);
-      });
-    } else {
-      // -------- Scenario B: legacy enkelvoudige gpx_stats --------
-      firstLat = legacy.start_lat;
-      firstLon = legacy.start_lon;
-
-      L.circleMarker([legacy.start_lat, legacy.start_lon], {
-        radius: 7, fillColor: "#2C4A3B", color: "#fff", weight: 2, fillOpacity: 1,
-      }).addTo(map).bindPopup("Startpunt");
-
-      if (legacy.track_points?.length > 1) {
-        L.polyline(legacy.track_points, { color: "#2C4A3B", weight: 3, opacity: 0.85 }).addTo(map);
-        allBounds.push(...legacy.track_points);
-      } else {
-        allBounds.push([legacy.start_lat, legacy.start_lon]);
+      // track_points ophalen — ofwel direct aanwezig, ofwel herparsed uit gpx_raw
+      let trackPoints = item.trackPoints;
+      if (!trackPoints && item.gpxRaw) {
+        trackPoints = _parseTrackPointsFromGpx(item.gpxRaw);
       }
+
+      if (trackPoints?.length > 1) {
+        L.polyline(trackPoints, { color: item.color, weight: 3, opacity: 0.85 }).addTo(map);
+        allBounds.push(...trackPoints);
+      } else {
+        allBounds.push([item.lat, item.lon]);
+      }
+
+      L.circleMarker([item.lat, item.lon], {
+        radius: 7, fillColor: item.color, color: "#fff", weight: 2, fillOpacity: 1,
+      }).addTo(map).bindPopup(item.label);
     }
 
-    // Kaart fitten op alle getekende segmenten samen
+    // Kaart fitten op alle segmenten
     if (allBounds.length > 1) {
       map.fitBounds(allBounds, { padding: [16, 16] });
     } else if (firstLat !== null) {
       map.setView([firstLat, firstLon], 13);
     }
 
-    // "Route openen" knop wijst naar het startpunt van het eerste segment
+    // "Route openen" knop — eerste startpunt
     const btnMap = $("btn-open-map");
     if (btnMap && firstLat !== null) {
       btnMap.hidden = false;
@@ -281,6 +286,35 @@ function renderMap(route) {
       );
     }
   }, 50);
+}
+
+/**
+ * Herpars trackpunten uit een GPX-string.
+ * Fallback voor JSON-bestanden geëxporteerd door creator.js < v2.4.1
+ * waarbij track_points ontbrak in segments[].gpx_stats.
+ * Samplet tot max 500 punten, identiek aan de creator-logica.
+ * @param {string} gpxRaw - Volledige GPX XML als string
+ * @returns {Array<[number,number]>|null} Array van [lat,lon] paren of null
+ */
+function _parseTrackPointsFromGpx(gpxRaw) {
+  try {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(gpxRaw, "application/xml");
+    const trkpts = Array.from(doc.querySelectorAll("trkpt"));
+    if (trkpts.length < 2) return null;
+    const step = Math.max(1, Math.floor(trkpts.length / 500));
+    const points = [];
+    for (let i = 0; i < trkpts.length; i += step) {
+      points.push([
+        parseFloat(trkpts[i].getAttribute("lat")),
+        parseFloat(trkpts[i].getAttribute("lon")),
+      ]);
+    }
+    return points;
+  } catch (err) {
+    console.warn("[route.js] GPX herparsing mislukt:", err);
+    return null;
+  }
 }
 
 // -----------------------------------------------------------
