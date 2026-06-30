@@ -1,5 +1,7 @@
 <!-- ======================= routes/route.html v2.0.0 =======================
      Route detail pagina — MyTrailWalks
+     Gebruikt route.js v2.1.0: kaart toont alle segmenten met kleurcode
+     per vervoersmiddel (achterwaarts compatibel met routes zonder segments).
      v2.0.0: nieuwe lay-out — 2-koloms grid, galerij slideshow
      v1.1.0: absolute paden + cache busters
      ======================================================================= -->
@@ -82,6 +84,9 @@
 
           <section class="route-section" id="section-map" hidden>
             <h2 class="route-section__title">Route op kaart</h2>
+            <!-- Kaart toont alle segmenten met kleurcode per vervoersmiddel
+                 wanneer route.segments aanwezig is. Anders fallback op
+                 het enkelvoudige gpx_stats (legacy export). -->
             <div id="route-map" class="route-map"></div>
             <button class="route-action-btn" id="btn-open-map" hidden>
               <span>🗺</span> Route openen
@@ -173,7 +178,7 @@
   <script src="/MyTrailWalks/js/topbar-auth.js?v=2.1.0"></script>
   <script src="/MyTrailWalks/js/analytics.js?v=1.1.0"></script>
   <script src="/MyTrailWalks/js/app.js?v=3.3.0"></script>
-  <script src="/MyTrailWalks/js/route.js?v=2.0.0"></script>
+  <script src="/MyTrailWalks/js/route.js?v=2.1.0"></script>
 
 </body>
 </html>
