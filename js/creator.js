@@ -18,15 +18,15 @@
 // KLEURCODE PER VERVOERSMIDDEL — kaart + segment header
 // -----------------------------------------------------------
 const TRANSPORT_COLORS = {
-  walking:    "#2C4A3B",  // forest groen
-  hike:       "#6B8E4E",  // lichter groen — onderscheidt van walking
-  cycling:    "#4C7A89",  // water blauw
-  motorcycle: "#8C6A4F",  // earth bruin
-  car:        "#5C5752",  // charcoal
-  train:      "#3A5FA0",  // blauw
-  bus:        "#A07A3A",  // geel-bruin
-  boat:       "#2E86AB",  // zee blauw
-  plane:      "#6B4FA0",  // paars
+  walking:    "#E8800A",  // oranje
+  hike:       "#9B59B6",  // paars
+  cycling:    "#2980B9",  // blauw
+  motorcycle: "#E74C3C",  // rood
+  car:        "#16A085",  // teal
+  train:      "#F39C12",  // geel-oranje
+  bus:        "#8E44AD",  // violet
+  boat:       "#1ABC9C",  // turquoise
+  plane:      "#2C3E50",  // donkerblauw
 };
 
 const TRANSPORT_LABELS = {
