@@ -1,6 +1,6 @@
 # MyTrailWalks — PROJECTLOG.md
-## Bijgewerkt: 29-06-2026 (patch-sessie)
-> Versie: v1.7.0 · Projectlog — chronologisch overzicht van sessies en wijzigingen
+## Bijgewerkt: 29-06-2026 (patch-sessie, vervolg 2)
+> Versie: v1.8.0 · Projectlog — chronologisch overzicht van sessies en wijzigingen
 
 ---
 
@@ -288,6 +288,68 @@
 | **SAC-schaal scope** | SAC T1-T6 is specifiek voor bergwandelen (Hike/Trail), niet voor vlakke wandelingen (Walking, eigen W1-W3 schaal). |
 | **Wegvoertuig-moeilijkheid** | Klimintensiteit + bochtigheid uit GPX, geen afstand. Wegdektype (kasseien) niet uit GPX afleidbaar — handmatige checkbox als override. |
 | **Kaart-kleurcode** | Vaste kleur per vervoersmiddel, gedeeld tussen creator en route detail pagina voor consistentie. |
+
+---
+
+## Patch 29-06-2026 (vervolg 2) — Segmenten-sectie route detail + bugfixes + kleurenpalet
+
+**Onderwerp:** Segmenten zichtbaar op route detail pagina + track_points bugfix + kleurenpalet + weerdata validatie
+
+**Status:**
+- T1-002 ✅ Uitgebreid — segmenten-sectie, bugfixes, nieuw kleurenpalet
+- T1-006 ✅ Uitgebreid — weerdata datum-validatie, resp.ok check, nieuw kleurenpalet
+
+### Aangeleverde bestanden
+
+| Bestand | Versie | Omschrijving |
+|---------|--------|--------------|
+| `js/route.js` | v2.3.0 | Segmenten-sectie, heldere kleuren, gpx_raw fallback, stats.maxSpeed i18n fix |
+| `routes/route.html` | v2.0.0 | section-segments toegevoegd, cache-busting v2.3.0 |
+| `css/route-segment-block.css` | v1.0.0 | Nieuwe CSS voor segmenten-tabel (toevoegen aan route.css) |
+| `js/creator.js` | v2.4.2 | Datum-validatie weerdata, resp.ok check, heldere kleuren |
+| `data/i18n/nl/route.json` | — | maxSpeed, hike, W1-W3/C1-C4/M1-M4/A1-A4 toegevoegd |
+| `data/i18n/en/route.json` | — | maxSpeed, hike, alle nieuwe schalen toegevoegd |
+| `data/i18n/nl/creator.json` | — | Volledig bijgewerkt: segmenten, hike, difficulty, stappen hernummerd |
+| `data/i18n/en/creator.json` | — | Volledig bijgewerkt: segmenten, hike, difficulty, stappen hernummerd |
+
+### Wijzigingen in detail
+
+**Segmenten-sectie op route detail pagina (route.js v2.3.0):**
+- Nieuwe `renderSegments()` functie toont alle segmenten als compacte blokken
+- Elk blok: gekleurde header met vervoersmiddel-badge + label + volgnummer
+- Tweekoloms tabel: GPX-stats links, weerdata rechts (startpunt segment = weerdata-referentie)
+- Moeilijkheidsgraad opgenomen in GPX-kolom
+- Op mobiel (< 500px) schakelt naar één kolom
+- Enkel zichtbaar als `route.segments` aanwezig is
+
+**Bugfixes:**
+- `track_points` ontbrak in segments[].gpx_stats export (creator.js v2.4.1) — opgelost
+- `track_points` ontbrak in root-level gpx_stats export — opgelost
+- `gpx_raw` fallback in route.js: als track_points ontbreekt wordt GPX client-side herparst
+- `stats.maxSpeed` i18n sleutel ontbrak — fallback + toegevoegd aan i18n bestanden
+
+**Heldere kleurenpalet (creator.js + route.js):**
+- Weg van kaart-kleuren (forest groen, charcoal, …) naar heldere onderscheidbare kleuren
+- walking oranje, hike paars, cycling blauw, motorcycle rood, car teal, train geel-oranje, bus violet, boat turquoise, plane donkerblauw
+- Identiek in creator.js en route.js voor consistentie
+
+**Weerdata validatie (creator.js v2.4.2):**
+- Datum-in-toekomst check vóór API-aanroep met duidelijke gebruikersfeedback
+- `resp.ok` check met specifieke foutmelding uit Open-Meteo response
+- `data.daily` aanwezigheidscheck als extra veiligheidslaag
+
+**i18n bestanden (nl + en):**
+- route.json: stats.maxSpeed, transport.hike, difficulty W1-W3/C1-C4/M1-M4/A1-A4 toegevoegd
+- creator.json: volledig herschreven naar huidige staat — stappen 1-5, segmenten-sleutels, transport-object, speedWarning-sleutels, difficulty-object met alle schalen
+
+### Architectuurbeslissingen
+
+| Onderwerp | Beslissing |
+|-----------|-----------|
+| **Kleurenpalet** | Heldere kleuren i.p.v. kaart-kleuren voor betere leesbaarheid en onderscheidbaarheid per vervoersmiddel. Identiek in creator en route detail. |
+| **Segmenten-sectie positie** | Na vervoer-sectie in linkerkolom route detail pagina. |
+| **Weerdata-referentie** | Startpunt van elk segment = coördinaten voor Open-Meteo API-aanroep. |
+| **Open-Meteo validatie** | Datum-validatie client-side vóór API-aanroep om onnodige requests te vermijden. |
 
 ---
 
