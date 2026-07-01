@@ -1431,10 +1431,33 @@ async function fetchWeather(sid) {
   if (fetchBtn) { fetchBtn.textContent = "Ophalen…"; fetchBtn.disabled = true; }
 
   try {
+    // Valideer datum — Open-Meteo archive API werkt enkel voor datums in het verleden
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const chosenDate = new Date(date);
+    if (chosenDate >= today) {
+      alert("Weerdata is enkel beschikbaar voor datums in het verleden. Kies een datum vóór vandaag.");
+      return;
+    }
+
     const url = `https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lon}&start_date=${date}&end_date=${date}&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,wind_speed_10m_max&timezone=Europe/Brussels`;
     const resp = await fetch(url);
+
+    if (!resp.ok) {
+      const errData = await resp.json().catch(() => ({}));
+      const reason = errData?.reason || `HTTP ${resp.status}`;
+      console.error("Open-Meteo fout:", reason);
+      alert(`Weerdata kon niet worden opgehaald: ${reason}`);
+      return;
+    }
+
     const data = await resp.json();
     const d = data.daily;
+
+    if (!d) {
+      alert("Weerdata kon niet worden opgehaald. Open-Meteo gaf geen dagdata terug.");
+      return;
+    }
 
     const condInp = document.querySelector(`.segment-weather-condition[data-sid="${sid}"]`);
     seg.weather = {
