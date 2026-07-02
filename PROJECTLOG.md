@@ -1,6 +1,6 @@
 # MyTrailWalks — PROJECTLOG.md
-## Bijgewerkt: 29-06-2026 (patch-sessie, vervolg 2)
-> Versie: v1.8.0 · Projectlog — chronologisch overzicht van sessies en wijzigingen
+## Bijgewerkt: 02-07-2026 (patch-sessie, vervolg 3)
+> Versie: v1.9.0 · Projectlog — chronologisch overzicht van sessies en wijzigingen
 
 ---
 
@@ -350,6 +350,48 @@
 | **Segmenten-sectie positie** | Na vervoer-sectie in linkerkolom route detail pagina. |
 | **Weerdata-referentie** | Startpunt van elk segment = coördinaten voor Open-Meteo API-aanroep. |
 | **Open-Meteo validatie** | Datum-validatie client-side vóór API-aanroep om onnodige requests te vermijden. |
+
+---
+
+## Patch 02-07-2026 — Rood-omcirkeld stats/weer/vervoer-blok verwijderd, vervoer in segment-header
+
+**Onderwerp:** UI-cleanup route detail pagina (TD-013) — dubbel stats/weer/vervoer-blok verwijderd, vervoersmiddel nu altijd zichtbaar per segment
+
+**Aanleiding:** Screenshot (01-07-2026) toonde dat op de route detail pagina hetzelfde soort data (stats, weer, vervoer) zowel in een los blok bovenaan als per segment werd getoond. Bovendien ontbrak het vervoer-icoon in de header van een segment zodra dat segment een eigen `label` had (bv. segment "Naar Grenspark Noord parking" toonde geen vervoersmiddel).
+
+**Status:**
+- T1-002 ✅ Uitgebreid — los stats/weer/vervoer-blok verwijderd, segment-header toont altijd vervoer
+- T3-004 🔁 Vervangen door segmenten-sectie — stats-dashboard bestaat niet meer als apart blok
+- T3-006 🔁 Vervangen door segmenten-sectie — weer-blok bestaat niet meer als apart blok
+- TD-013 ✅ Done (nieuw item) — dubbele stats/weer/vervoer-UI opgelost
+
+### Aangeleverde bestanden
+
+| Bestand | Versie | Omschrijving |
+|---------|--------|--------------|
+| `routes/route.html` | v2.0.0 → v2.1.0 | `section-stats`, `section-weather`, `section-transport` verwijderd. Cache-busting bijgewerkt naar route.js v2.4.0. |
+| `js/route.js` | v2.3.0 → v2.4.0 | `renderStats()`, `renderWeather()`, `renderTransport()` en hun aanroepen verwijderd. `renderSegments()`: header toont voortaan altijd `<icoon> <vervoerlabel>`, aangevuld met `— <label>` als het segment een eigen label heeft. |
+| `css/route.css` | v2.0.0 → v2.1.0 | Dode CSS voor stats-grid, weerdata-box en vervoer-tags verwijderd (niet meer gebruikt). `.route-segment-block__label` kreeg `min-width: 0` + `word-break` zodat de langere headertekst netjes wrapt op mobiel. |
+
+### Wijzigingen in detail
+
+**Verwijderd:**
+- Los blok bovenaan route detail pagina met algemene stats (afstand/duur/stijging/daling/snelheid/hoogte), weerdata en vervoer-tags — dit dupliceerde informatie die al per segment zichtbaar was.
+
+**Segment-header (route.js v2.4.0):**
+- Voorheen: header toonde `seg.label` als die aanwezig was, anders viel die terug op de vervoerslabel. Resultaat: zodra een segment een eigen label had, verdween het vervoersmiddel volledig uit beeld.
+- Nu: header combineert altijd vervoer + label: `🚶 Wandelen — Route: Kalmthout Grenspark Noord <> Brasserie de Wolf`, of enkel `🚶 Wandelen` zonder eigen label.
+
+**Validatie:**
+- `node --check` op route.js: geen syntaxfouten
+- Alle `getElementById`-aanroepen in route.js gecontroleerd tegen de overgebleven element-ids in route.html — geen ontbrekende targets, dus geen console errors door de verwijderde secties
+
+### Architectuurbeslissingen patch 02-07-2026
+
+| Onderwerp | Beslissing |
+|-----------|-----------|
+| **Stats/weer/vervoer op route detail** | Enkel nog per segment getoond, geen apart samenvattend blok meer bovenaan de pagina. |
+| **Segment-header samenstelling** | Vervoersmiddel + label altijd samen getoond, nooit enkel het label — voorkomt dat vervoer onzichtbaar wordt bij segmenten met een eigen naam. |
 
 ---
 
